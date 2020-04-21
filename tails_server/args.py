@@ -7,26 +7,31 @@ PARSER = argparse.ArgumentParser(description="Runs the server.")
 
 
 PARSER.add_argument(
-    "--genesis-url",
+    "--host",
     type=str,
-    dest="genesis_url",
-    metavar="<genesis-url>",
-    help="Specify a url from which to fetch the genesis transactions",
+    required=False,
+    dest="host",
+    metavar="<host>",
+    help="Specify the host for which to accept connections.",
 )
 
-
-def parse_args(args):
-    """Parse command line arguments and return the collection."""
-    return PARSER.parse_args()
+PARSER.add_argument(
+    "--port",
+    type=str,
+    required=False,
+    dest="port",
+    metavar="<port>",
+    help="Specify the port on which to accept connections.",
+)
 
 
 def get_settings():
     """Convert command line arguments to a settings dictionary."""
 
-    args = parse_args()
+    args = PARSER.parse_args()
     settings = {}
 
-    if args.genesis_url:
-        settings["ledger.genesis_url"] = args.genesis_url
+    settings["host"] = args.host
+    settings["port"] = args.port
 
     return settings

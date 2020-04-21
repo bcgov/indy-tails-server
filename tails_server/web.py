@@ -7,17 +7,15 @@ async def index(request):
     return web.json_response({})
 
 
-def start(host=None, port=None):
-
-    if not host:
-        host = DEFAULT_WEB_HOST
-
-    if not port:
-        port = DEFAULT_WEB_PORT
-
+def start(settings):
     app = web.Application()
+    app["settings"] = settings
 
     # Add routes
-    app.add_routes([web.get("/", index)])
+    app.add_routes([web.post("/", index)])
 
-    web.run_app(app, host=host, port=port)
+    web.run_app(
+        app,
+        host=settings.get("host") or DEFAULT_WEB_HOST,
+        port=settings.get("port") or DEFAULT_WEB_PORT,
+    )

@@ -12,5 +12,5 @@ ADD setup.py ./
 
 RUN pip3 install --no-cache-dir -e .
 
-ENTRYPOINT ["/bin/bash", "-c", "tails-server \"$@\"", "--"]
+ENTRYPOINT ["/bin/bash", "-c", "tails-server \"$@\""]
 

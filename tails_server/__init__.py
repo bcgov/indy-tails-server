@@ -3,7 +3,8 @@ from .web import start
 
 
 def main():
-    start()
+    settings = get_settings()
+    start(settings)
 
 
 if __name__ == "__main__":
