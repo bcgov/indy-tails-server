@@ -1,0 +1,10 @@
+version: "3"
+services:
+    tails-server:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile
+        ports:
+            - 6543:6543
+        command: >
+            tails-server

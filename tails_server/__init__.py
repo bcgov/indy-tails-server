@@ -1,13 +1,10 @@
-import asyncio
-
 from .args import get_settings
+from .web import start
 
 
 def main():
-    """Entrypoint."""
-    # settings = get_settings()
+    start()
 
 
 if __name__ == "__main__":
     main()
-

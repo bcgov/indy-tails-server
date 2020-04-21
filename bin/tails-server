@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-from tails_server.main import run
+from tails_server import main
 
-run()
+main()
