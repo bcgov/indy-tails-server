@@ -3,8 +3,16 @@ services:
     tails-server:
         build:
             context: ..
-            dockerfile: docker/Dockerfile
+            dockerfile: docker/Dockerfile.tails-server
         ports:
             - 6543:6543
         command: >
-            tails-server --host 0.0.0.0 --port 6543
+            tails-server --host 0.0.0.0 --port 6543 --indy-vdr-proxy-url $INDY_VDR_PROXY_URL
+    indy-vdr-proxy:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile.indy-vdr-proxy
+        ports:
+            - 7654:7654
+        command: >
+            indy-vdr-proxy --host 0.0.0.0 --port 7654 --genesis $GENESIS_URL

@@ -1,0 +1,6 @@
+FROM bcgovimages/von-image:next-1
+
+ENV DOCKER_INTERNAL_IP="$(shell ip route | grep docker0 | awk '{print $$9}')";
+
+ENTRYPOINT ["/bin/bash", "-c", "indy-vdr-proxy \"$@\""]
+
