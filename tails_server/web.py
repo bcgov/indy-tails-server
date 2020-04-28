@@ -61,12 +61,15 @@ async def index(request):
         # 'x' mode == O_EXCL | os.O_CREAT
         tmp_file.seek(0)
         storage_path = request.app["settings"]["storage_path"]
-        with open(os.path.join(storage_path, revocation_reg_id), "xb") as tails_file:
-            while True:
-                chunk = tmp_file.read(CHUNK_SIZE)
-                if not chunk:
-                    break
-                tails_file.write(chunk)
+        try:
+            with open(os.path.join(storage_path, revocation_reg_id), "xb") as tails_file:
+                while True:
+                    chunk = tmp_file.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    tails_file.write(chunk)
+        except FileExistsError:
+            raise web.HTTPConflict(text="This tails file already exists.")
 
     return web.Response()
 
@@ -77,7 +80,7 @@ def start(settings):
     app["vdr_proxy"] = VDRProxy(settings["indy_vdr_proxy_url"])
 
     # Add routes
-    app.add_routes([web.post("/", index)])
+    app.add_routes([web.put("/", index)])
 
     web.run_app(
         app,
