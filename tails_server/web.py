@@ -1,3 +1,5 @@
+import os
+import fcntl
 import hashlib
 import base58
 from aiohttp import web
@@ -14,7 +16,7 @@ EXPECTED_CONTENT_TYPE = "application/octet-stream"
 async def index(request):
     # Check content-type for octet stream
     content_type_header = request.headers.get("Content-Type")
-    if content_type_header != "EXPECTED_CONTENT_TYPE":
+    if content_type_header != EXPECTED_CONTENT_TYPE:
         raise web.HTTPBadRequest(
             text="Request must pass header 'Content-Type: octet-stream'"
         )
@@ -26,17 +28,23 @@ async def index(request):
             text=f"Missing header: {REVOCATION_REGISTRY_ID_HEADER}"
         )
 
-    # Hash File
     sha256 = hashlib.sha256()
+
+    # Process the file in chunks so we don't explode on large files.
+    # Construct hash and write file in chunks.
+    f = open("/tmp/tails-file", "wb")
+    fcntl.lockf(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
     while True:
         chunk = await request.content.readany()
         if not chunk:
             break
-
         sha256.update(chunk)
+        f.write(chunk)
+    f.close()
 
-    digest = sha256.digest()
-    b58_digest = base58.b58encode(digest)
+    digest = sha256.hexdigest()
+    print(digest)
+    b58_digest = base58.b58encode(digest).decode("utf-8")
 
     # Lookup revocation registry
     revocation_registry_definition = await request.app[
@@ -45,13 +53,8 @@ async def index(request):
     tails_hash = revocation_registry_definition["data"]["value"]["tailsHash"]
 
     if tails_hash != b58_digest:
+        # TODO create tmp file and move to the final directory after this check.
         raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
-
-    # Aquire lock for file
-
-    # Write file to os
-
-    # Fetch revocation registry from ledger
 
     return web.Response()
 
