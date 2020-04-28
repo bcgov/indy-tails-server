@@ -15,8 +15,36 @@ REVOCATION_REGISTRY_ID_HEADER = "X-Revocation-Registry-ID"
 EXPECTED_CONTENT_TYPE = "application/octet-stream"
 CHUNK_SIZE = 1024
 
+routes = web.RouteTableDef()
 
-async def index(request):
+
+@routes.get("/{revocation_reg_id}")
+async def get_file(request):
+    revocation_reg_id = request.match_info["revocation_reg_id"]
+    storage_path = request.app["settings"]["storage_path"]
+
+    response = web.StreamResponse()
+    response.enable_compression()
+    response.enable_chunked_encoding()
+
+    try:
+        with open(os.path.join(storage_path, revocation_reg_id), "rb") as tails_file:
+            await response.prepare(request)
+            while True:
+                sleep(0.4)
+                chunk = tails_file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                await response.write(chunk)
+
+    except FileNotFoundError:
+        raise web.HTTPNotFound()
+
+    await response.write_eof()
+
+
+@routes.put("/")
+async def put_file(request):
     # Check content-type for octet stream
     content_type_header = request.headers.get("Content-Type")
     if content_type_header != EXPECTED_CONTENT_TYPE:
@@ -40,7 +68,10 @@ async def index(request):
     # Process the file in chunks so we don't explode on large files.
     # Construct hash and write file in chunks.
     sha256 = hashlib.sha256()
-    with TemporaryFile("w+b") as tmp_file:
+    storage_path = request.app["settings"]["storage_path"]
+    with TemporaryFile("w+b") as tmp_file, open(
+        os.path.join(storage_path, revocation_reg_id), "xb"
+    ) as tails_file:
         while True:
             chunk = await request.content.readany()
             if not chunk:
@@ -54,24 +85,26 @@ async def index(request):
         if tails_hash != b58_digest:
             raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
 
-        # File integrity is good so write file to permanent location
+        # File integrity is good so write file to permanent location.
         # This should be atomic across networked filesystems:
         # https://linux.die.net/man/3/open
         # http://nfs.sourceforge.net/ (D10)
         # 'x' mode == O_EXCL | os.O_CREAT
         tmp_file.seek(0)
-        storage_path = request.app["settings"]["storage_path"]
         try:
-            with open(os.path.join(storage_path, revocation_reg_id), "xb") as tails_file:
-                while True:
-                    chunk = tmp_file.read(CHUNK_SIZE)
-                    if not chunk:
-                        break
-                    tails_file.write(chunk)
+            while True:
+                chunk = tmp_file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                tails_file.write(chunk)
         except FileExistsError:
             raise web.HTTPConflict(text="This tails file already exists.")
 
-    return web.Response()
+    # TODO: Verify integrity of file *after* it has been
+    # written to the filesystem. Otherwise, we could end up
+    # with a corrupted file we can't remove (unlikely).
+
+    return web.Response(text=revocation_reg_id)
 
 
 def start(settings):
@@ -80,7 +113,7 @@ def start(settings):
     app["vdr_proxy"] = VDRProxy(settings["indy_vdr_proxy_url"])
 
     # Add routes
-    app.add_routes([web.put("/", index)])
+    app.add_routes(routes)
 
     web.run_app(
         app,
