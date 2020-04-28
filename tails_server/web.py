@@ -1,7 +1,6 @@
 import hashlib
 import base58
 import os
-from time import sleep
 from tempfile import TemporaryFile
 
 from aiohttp import web
@@ -31,7 +30,6 @@ async def get_file(request):
         with open(os.path.join(storage_path, revocation_reg_id), "rb") as tails_file:
             await response.prepare(request)
             while True:
-                sleep(0.4)
                 chunk = tails_file.read(CHUNK_SIZE)
                 if not chunk:
                     break
@@ -69,36 +67,36 @@ async def put_file(request):
     # Construct hash and write file in chunks.
     sha256 = hashlib.sha256()
     storage_path = request.app["settings"]["storage_path"]
-    with TemporaryFile("w+b") as tmp_file, open(
-        os.path.join(storage_path, revocation_reg_id), "xb"
-    ) as tails_file:
-        while True:
-            chunk = await request.content.readany()
-            if not chunk:
-                break
-            sha256.update(chunk)
-            tmp_file.write(chunk)
+    try:
+        with TemporaryFile("w+b") as tmp_file, open(
+            os.path.join(storage_path, revocation_reg_id), "xb"
+        ) as tails_file:
+            while True:
+                chunk = await request.content.readany()
+                if not chunk:
+                    break
+                sha256.update(chunk)
+                tmp_file.write(chunk)
 
-        # Check file integrity against tailHash on ledger
-        digest = sha256.digest()
-        b58_digest = base58.b58encode(digest).decode("utf-8")
-        if tails_hash != b58_digest:
-            raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
+            # Check file integrity against tailHash on ledger
+            digest = sha256.digest()
+            b58_digest = base58.b58encode(digest).decode("utf-8")
+            if tails_hash != b58_digest:
+                raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
 
-        # File integrity is good so write file to permanent location.
-        # This should be atomic across networked filesystems:
-        # https://linux.die.net/man/3/open
-        # http://nfs.sourceforge.net/ (D10)
-        # 'x' mode == O_EXCL | os.O_CREAT
-        tmp_file.seek(0)
-        try:
+            # File integrity is good so write file to permanent location.
+            # This should be atomic across networked filesystems:
+            # https://linux.die.net/man/3/open
+            # http://nfs.sourceforge.net/ (D10)
+            # 'x' mode == O_EXCL | os.O_CREAT
+            tmp_file.seek(0)
             while True:
                 chunk = tmp_file.read(CHUNK_SIZE)
                 if not chunk:
                     break
                 tails_file.write(chunk)
-        except FileExistsError:
-            raise web.HTTPConflict(text="This tails file already exists.")
+    except FileExistsError:
+        raise web.HTTPConflict(text="This tails file already exists.")
 
     # TODO: Verify integrity of file *after* it has been
     # written to the filesystem. Otherwise, we could end up
