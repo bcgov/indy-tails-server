@@ -33,6 +33,15 @@ PARSER.add_argument(
     help="Specify the url for a running instance of indy-vdr-proxy.",
 )
 
+PARSER.add_argument(
+    "--storage-path",
+    type=str,
+    required=True,
+    dest="storage_path",
+    metavar="<storage_path>",
+    help="Specify the path to store files.",
+)
+
 
 def get_settings():
     """Convert command line arguments to a settings dictionary."""
@@ -42,6 +51,8 @@ def get_settings():
 
     settings["host"] = args.host
     settings["port"] = args.port
+
     settings["indy_vdr_proxy_url"] = args.indy_vdr_proxy_url
+    settings["storage_path"] = args.storage_path
 
     return settings

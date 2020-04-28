@@ -1,7 +1,9 @@
-import os
-import fcntl
 import hashlib
 import base58
+import os
+from time import sleep
+from tempfile import TemporaryFile
+
 from aiohttp import web
 
 from .vdrproxy import VDRProxy
@@ -11,6 +13,7 @@ from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
 
 REVOCATION_REGISTRY_ID_HEADER = "X-Revocation-Registry-ID"
 EXPECTED_CONTENT_TYPE = "application/octet-stream"
+CHUNK_SIZE = 1024
 
 
 async def index(request):
@@ -28,33 +31,42 @@ async def index(request):
             text=f"Missing header: {REVOCATION_REGISTRY_ID_HEADER}"
         )
 
-    sha256 = hashlib.sha256()
-
-    # Process the file in chunks so we don't explode on large files.
-    # Construct hash and write file in chunks.
-    f = open("/tmp/tails-file", "wb")
-    fcntl.lockf(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    while True:
-        chunk = await request.content.readany()
-        if not chunk:
-            break
-        sha256.update(chunk)
-        f.write(chunk)
-    f.close()
-
-    digest = sha256.hexdigest()
-    print(digest)
-    b58_digest = base58.b58encode(digest).decode("utf-8")
-
-    # Lookup revocation registry
+    # Lookup revocation registry and get tailsHash
     revocation_registry_definition = await request.app[
         "vdr_proxy"
     ].get_revocation_registry_definition(revocation_reg_id)
     tails_hash = revocation_registry_definition["data"]["value"]["tailsHash"]
 
-    if tails_hash != b58_digest:
-        # TODO create tmp file and move to the final directory after this check.
-        raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
+    # Process the file in chunks so we don't explode on large files.
+    # Construct hash and write file in chunks.
+    sha256 = hashlib.sha256()
+    with TemporaryFile("w+b") as tmp_file:
+        while True:
+            chunk = await request.content.readany()
+            if not chunk:
+                break
+            sha256.update(chunk)
+            tmp_file.write(chunk)
+
+        # Check file integrity against tailHash on ledger
+        digest = sha256.digest()
+        b58_digest = base58.b58encode(digest).decode("utf-8")
+        if tails_hash != b58_digest:
+            raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
+
+        # File integrity is good so write file to permanent location
+        # This should be atomic across networked filesystems:
+        # https://linux.die.net/man/3/open
+        # http://nfs.sourceforge.net/ (D10)
+        # 'x' mode == O_EXCL | os.O_CREAT
+        tmp_file.seek(0)
+        storage_path = request.app["settings"]["storage_path"]
+        with open(os.path.join(storage_path, revocation_reg_id), "xb") as tails_file:
+            while True:
+                chunk = tmp_file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                tails_file.write(chunk)
 
     return web.Response()
 
