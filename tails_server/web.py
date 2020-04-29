@@ -26,6 +26,7 @@ async def get_file(request):
     response.enable_compression()
     response.enable_chunked_encoding()
 
+    # Stream the response since the file could be big.
     try:
         with open(os.path.join(storage_path, revocation_reg_id), "rb") as tails_file:
             await response.prepare(request)
@@ -41,7 +42,7 @@ async def get_file(request):
     await response.write_eof()
 
 
-@routes.put("/")
+@routes.put("/{revocation_reg_id}")
 async def put_file(request):
     # Check content-type for octet stream
     content_type_header = request.headers.get("Content-Type")
@@ -50,17 +51,14 @@ async def put_file(request):
             text="Request must pass header 'Content-Type: octet-stream'"
         )
 
-    # Get revocation registry id
-    revocation_reg_id = request.headers.get(REVOCATION_REGISTRY_ID_HEADER)
-    if not revocation_reg_id:
-        raise web.HTTPBadRequest(
-            text=f"Missing header: {REVOCATION_REGISTRY_ID_HEADER}"
-        )
-
     # Lookup revocation registry and get tailsHash
+    revocation_reg_id = request.match_info["revocation_reg_id"]
     revocation_registry_definition = await request.app[
         "vdr_proxy"
     ].get_revocation_registry_definition(revocation_reg_id)
+    if not revocation_registry_definition:
+        raise web.HTTPNotFound()
+
     tails_hash = revocation_registry_definition["data"]["value"]["tailsHash"]
 
     # Process the file in chunks so we don't explode on large files.
@@ -68,6 +66,11 @@ async def put_file(request):
     sha256 = hashlib.sha256()
     storage_path = request.app["settings"]["storage_path"]
     try:
+        # File integrity is good so write file to permanent location.
+        # This should be atomic across networked filesystems:
+        # https://linux.die.net/man/3/open
+        # http://nfs.sourceforge.net/ (D10)
+        # 'x' mode == O_EXCL | O_CREAT
         with TemporaryFile("w+b") as tmp_file, open(
             os.path.join(storage_path, revocation_reg_id), "xb"
         ) as tails_file:
@@ -84,11 +87,6 @@ async def put_file(request):
             if tails_hash != b58_digest:
                 raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
 
-            # File integrity is good so write file to permanent location.
-            # This should be atomic across networked filesystems:
-            # https://linux.die.net/man/3/open
-            # http://nfs.sourceforge.net/ (D10)
-            # 'x' mode == O_EXCL | os.O_CREAT
             tmp_file.seek(0)
             while True:
                 chunk = tmp_file.read(CHUNK_SIZE)
@@ -98,11 +96,7 @@ async def put_file(request):
     except FileExistsError:
         raise web.HTTPConflict(text="This tails file already exists.")
 
-    # TODO: Verify integrity of file *after* it has been
-    # written to the filesystem. Otherwise, we could end up
-    # with a corrupted file we can't remove (unlikely).
-
-    return web.Response(text=revocation_reg_id)
+    return web.Response(text=tails_hash)
 
 
 def start(settings):

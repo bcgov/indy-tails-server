@@ -14,4 +14,7 @@ class VDRProxy:
             async with session.get(
                 f"{self.base_url}/rev_reg_def/{revoc_reg_id}"
             ) as resp:
-                return await resp.json()
+                result = await resp.json()
+                if not result["data"]:
+                    return False
+                return result
