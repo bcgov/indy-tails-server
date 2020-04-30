@@ -45,4 +45,4 @@ A simple `GET` request will download a tails file. The path is `/{revoc_reg_id}`
 
 ## Guarantees
 
-This software is designed to support scaling to as many machines or processes as necessary. As long as the filesystem (perhaps a network mount) being written to support POSIX file locks, you should be good.
+This software is designed to support scaling to as many machines or processes as necessary. As long as the filesystem (perhaps a network mount) being written to supports POSIX file locks, you should be good.
