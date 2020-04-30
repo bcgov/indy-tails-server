@@ -25,6 +25,24 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
+    "--log-config",
+    type=str,
+    required=False,
+    dest="log_config",
+    metavar="<log_config_path>",
+    help="Specify a path to a python logging config.",
+)
+
+PARSER.add_argument(
+    "--log-level",
+    type=str,
+    required=False,
+    dest="log_level",
+    metavar="<log_level>",
+    help="Specify your desired loging level.",
+)
+
+PARSER.add_argument(
     "--indy-vdr-proxy-url",
     type=str,
     required=True,
@@ -51,6 +69,9 @@ def get_settings():
 
     settings["host"] = args.host
     settings["port"] = args.port
+
+    settings["log_config"] = args.log_config
+    settings["log_level"] = args.log_level
 
     settings["indy_vdr_proxy_url"] = args.indy_vdr_proxy_url
     settings["storage_path"] = args.storage_path
