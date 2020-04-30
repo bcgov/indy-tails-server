@@ -1,3 +1,4 @@
+import logging
 import hashlib
 import base58
 import os
@@ -9,6 +10,7 @@ from .vdrproxy import VDRProxy
 
 from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
 
+LOGGER = logging.getLogger(__name__)
 
 REVOCATION_REGISTRY_ID_HEADER = "X-Revocation-Registry-ID"
 EXPECTED_CONTENT_TYPE = "application/octet-stream"
