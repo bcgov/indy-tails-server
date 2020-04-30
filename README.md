@@ -2,11 +2,21 @@
 
 > This softare is designed to run on linux kernel 3.11 or newer.
 
+## Running in Docker (easy mode)
+
+[Install Docker](https://docs.docker.com/get-docker/).
+
+From the docker directory, run `./manage start GENESIS_URL=http://test.bcovrin.vonx.io/genesis`. `GENESIS_URL` can point to any valid genesis transaction file.
+
 ## Running
 
-Install the python package `tails-server` from this directory.
+Install the python package `tails-server` from this directory. This may be available on [PyPI](https://pypi.org/) some day.
 
-Currently, this software depends on a running instance of [Indy VDR Proxy](https://github.com/hyperledger/indy-vdr)
+```bash
+pip3 install -e .
+```
+
+Currently, this software depends on a running instance of [Indy VDR Proxy](https://github.com/hyperledger/indy-vdr).
 
 Run the software:
 
@@ -15,10 +25,6 @@ tails-server --host 0.0.0.0 --port 6543 --indy-vdr-proxy-url $INDY_VDR_PROXY_URL
 ```
 
 Where `$INDY_VDR_PROXY_URL` is the url to a running instance of Indy VDR Proxy and `$STORAGE_PATH` is where you would like the tails files stored.
-
-## Running Locally (easy mode)
-
-From the docker directory, run `./manage start GENESIS_URL=http://test.bcovrin.vonx.io/genesis`. `GENESIS_URL` can point to any valid genesis transaction file.
 
 ## Usage
 
