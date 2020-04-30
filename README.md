@@ -6,7 +6,7 @@
 
 [Install Docker](https://docs.docker.com/get-docker/).
 
-From the docker directory, run `./manage start GENESIS_URL=http://test.bcovrin.vonx.io/genesis`. `GENESIS_URL` can point to any valid genesis transaction file.
+From the docker directory, run `./manage start GENESIS_URL=http://test.bcovrin.vonx.io/genesis`. `GENESIS_URL` can point to any valid genesis transaction file on the file system or at a URL.
 
 ## Running
 
