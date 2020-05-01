@@ -3,6 +3,7 @@ import hashlib
 import base58
 import os
 from tempfile import TemporaryFile
+from binascii import Error as BinAsciiError
 
 from aiohttp import web
 
@@ -52,6 +53,14 @@ async def put_file(request):
         raise web.HTTPBadRequest(
             text="Request must pass header 'Content-Type: octet-stream'"
         )
+
+    # Grab genesis transactions as base64
+    b64_genesis = request.headers.get("X-Genesis-Transactions")
+    if not b64_genesis:
+        raise web.HTTPBadRequest(
+            text="Request must pass X-Genesis-Transactions header containing base64 encoded genesis transactions for ledger"
+        )
+
 
     # Lookup revocation registry and get tailsHash
     revocation_reg_id = request.match_info["revocation_reg_id"]

@@ -18,3 +18,15 @@ class VDRProxy:
                 if not result["data"]:
                     return False
                 return result
+
+
+# import base64
+
+# import indy_vdr
+
+
+# def get_rev_reg_def(base64_genesis, rev_reg_id):
+    
+
+    
+#     genesis_txn = base64.decodestring(base64_genesis)
