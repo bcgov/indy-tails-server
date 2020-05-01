@@ -2,8 +2,7 @@ import logging
 import hashlib
 import base58
 import os
-from tempfile import TemporaryFile
-from binascii import Error as BinAsciiError
+from tempfile import NamedTemporaryFile
 
 from aiohttp import web
 
@@ -82,18 +81,17 @@ async def put_file(request):
     if not revocation_registry_definition:
         raise web.HTTPNotFound()
 
-    tails_hash = revocation_registry_definition["data"]["value"]["tailsHash"]
+    tails_hash = revocation_registry_definition["value"]["tailsHash"]
 
     # Process the file in chunks so we don't explode on large files.
     # Construct hash and write file in chunks.
     sha256 = hashlib.sha256()
     try:
-        # File integrity is good so write file to permanent location.
         # This should be atomic across networked filesystems:
         # https://linux.die.net/man/3/open
         # http://nfs.sourceforge.net/ (D10)
         # 'x' mode == O_EXCL | O_CREAT
-        with TemporaryFile("w+b") as tmp_file, open(
+        with NamedTemporaryFile("w+b") as tmp_file, open(
             os.path.join(storage_path, revocation_reg_id), "xb"
         ) as tails_file:
             while True:
@@ -109,12 +107,14 @@ async def put_file(request):
             if tails_hash != b58_digest:
                 raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
 
+            # File integrity is good so write file to permanent location.
             tmp_file.seek(0)
             while True:
                 chunk = tmp_file.read(CHUNK_SIZE)
                 if not chunk:
                     break
                 tails_file.write(chunk)
+
     except FileExistsError:
         raise web.HTTPConflict(text="This tails file already exists.")
 
