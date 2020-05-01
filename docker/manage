@@ -33,7 +33,7 @@ exportEnvironment() {
   export GENESIS_URL=${GENESIS_URL:-http://$DOCKERHOST:9000/genesis}
   export INDY_VDR_PROXY_URL=${INDY_VDR_PROXY_URL:-http://indy-vdr-proxy:7654}
   export STORAGE_PATH=${STORAGE_PATH:-/tmp/tails-files}
-  export LOG_LEVEL=${LOG_LEVEL:-WARNING}
+  export LOG_LEVEL=${LOG_LEVEL:-INFO}
 }
 
 # =================================================================================================================

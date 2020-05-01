@@ -17,7 +17,6 @@ def configure(logging_config_path: str = None, log_level: str = None):
     else:
         config_path = DEFAULT_LOGGING_CONFIG_PATH
 
-    print(config_path)
     try:
         fileConfig(config_path, disable_existing_loggers=False)
     except KeyError:
@@ -26,6 +25,5 @@ def configure(logging_config_path: str = None, log_level: str = None):
         raise BadLogConfigError()
 
     if log_level:
-        print(log_level)
         log_level = log_level.upper()
         logging.root.setLevel(log_level)

@@ -7,7 +7,7 @@ from binascii import Error as BinAsciiError
 
 from aiohttp import web
 
-from .vdrproxy import VDRProxy
+from .ledger import get_rev_reg_def, GenesisDecodeError, BadGenesisError
 
 from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
 
@@ -47,6 +47,8 @@ async def get_file(request):
 
 @routes.put("/{revocation_reg_id}")
 async def put_file(request):
+    storage_path = request.app["settings"]["storage_path"]
+
     # Check content-type for octet stream
     content_type_header = request.headers.get("Content-Type")
     if content_type_header != EXPECTED_CONTENT_TYPE:
@@ -58,15 +60,25 @@ async def put_file(request):
     b64_genesis = request.headers.get("X-Genesis-Transactions")
     if not b64_genesis:
         raise web.HTTPBadRequest(
-            text="Request must pass X-Genesis-Transactions header containing base64 encoded genesis transactions for ledger"
+            text="Request must pass X-Genesis-Transactions header "
+            + "containing base64 encoded genesis transactions for ledger"
         )
-
 
     # Lookup revocation registry and get tailsHash
     revocation_reg_id = request.match_info["revocation_reg_id"]
-    revocation_registry_definition = await request.app[
-        "vdr_proxy"
-    ].get_revocation_registry_definition(revocation_reg_id)
+    try:
+        revocation_registry_definition = await get_rev_reg_def(
+            b64_genesis, revocation_reg_id, storage_path
+        )
+    except GenesisDecodeError:
+        raise web.HTTPBadRequest(
+            text="X-Genesis-Transactions header contains malformed base64 encoding."
+        )
+    except BadGenesisError:
+        raise web.HTTPBadRequest(
+            text="Genesis transactions are not valid."
+        )
+
     if not revocation_registry_definition:
         raise web.HTTPNotFound()
 
@@ -75,7 +87,6 @@ async def put_file(request):
     # Process the file in chunks so we don't explode on large files.
     # Construct hash and write file in chunks.
     sha256 = hashlib.sha256()
-    storage_path = request.app["settings"]["storage_path"]
     try:
         # File integrity is good so write file to permanent location.
         # This should be atomic across networked filesystems:
@@ -113,7 +124,6 @@ async def put_file(request):
 def start(settings):
     app = web.Application()
     app["settings"] = settings
-    app["vdr_proxy"] = VDRProxy(settings["indy_vdr_proxy_url"])
 
     # Add routes
     app.add_routes(routes)
