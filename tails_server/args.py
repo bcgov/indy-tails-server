@@ -43,15 +43,6 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
-    "--indy-vdr-proxy-url",
-    type=str,
-    required=True,
-    dest="indy_vdr_proxy_url",
-    metavar="<indy_vdr_proxy>",
-    help="Specify the url for a running instance of indy-vdr-proxy.",
-)
-
-PARSER.add_argument(
     "--storage-path",
     type=str,
     required=True,
@@ -73,7 +64,6 @@ def get_settings():
     settings["log_config"] = args.log_config
     settings["log_level"] = args.log_level
 
-    settings["indy_vdr_proxy_url"] = args.indy_vdr_proxy_url
     settings["storage_path"] = args.storage_path
 
     return settings

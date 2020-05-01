@@ -6,7 +6,12 @@ from tempfile import NamedTemporaryFile
 
 from aiohttp import web
 
-from .ledger import get_rev_reg_def, GenesisDecodeError, BadGenesisError
+from .ledger import (
+    get_rev_reg_def,
+    GenesisDecodeError,
+    BadGenesisError,
+    BadRevocationRegistryIdError,
+)
 
 from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
 
@@ -74,8 +79,10 @@ async def put_file(request):
             text="X-Genesis-Transactions header contains malformed base64 encoding."
         )
     except BadGenesisError:
+        raise web.HTTPBadRequest(text="Genesis transactions are not valid.")
+    except BadRevocationRegistryIdError:
         raise web.HTTPBadRequest(
-            text="Genesis transactions are not valid."
+            text=f"Revocation registry ID is not valid: {revocation_reg_id}."
         )
 
     if not revocation_registry_definition:
@@ -91,9 +98,7 @@ async def put_file(request):
         # https://linux.die.net/man/3/open
         # http://nfs.sourceforge.net/ (D10)
         # 'x' mode == O_EXCL | O_CREAT
-        with NamedTemporaryFile("w+b") as tmp_file, open(
-            os.path.join(storage_path, revocation_reg_id), "xb"
-        ) as tails_file:
+        with NamedTemporaryFile("w+b") as tmp_file:
             while True:
                 chunk = await request.content.readany()
                 if not chunk:
@@ -109,11 +114,14 @@ async def put_file(request):
 
             # File integrity is good so write file to permanent location.
             tmp_file.seek(0)
-            while True:
-                chunk = tmp_file.read(CHUNK_SIZE)
-                if not chunk:
-                    break
-                tails_file.write(chunk)
+            with open(
+                os.path.join(storage_path, revocation_reg_id), "xb"
+            ) as tails_file:
+                while True:
+                    chunk = tmp_file.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    tails_file.write(chunk)
 
     except FileExistsError:
         raise web.HTTPConflict(text="This tails file already exists.")

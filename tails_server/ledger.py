@@ -16,6 +16,10 @@ class BadGenesisError(Exception):
     pass
 
 
+class BadRevocationRegistryIdError(Exception):
+    pass
+
+
 async def get_rev_reg_def(b64_genesis, rev_reg_id, storage_path):
     # Decode base into genesis transactions
     try:
@@ -42,9 +46,17 @@ async def get_rev_reg_def(b64_genesis, rev_reg_id, storage_path):
                 raise
 
     # Get transaction from ledger
-    req = indy_vdr.ledger.build_get_revoc_reg_def_request(
-        None, rev_reg_id
-    )
+    try:
+        req = indy_vdr.ledger.build_get_revoc_reg_def_request(
+            None, rev_reg_id
+        )
+    except indy_vdr.error.VdrError as e:
+        logger.info(e.code)
+        if e.code == indy_vdr.VdrErrorCode.INPUT:
+            raise BadRevocationRegistryIdError()
+        else:
+            raise
+
     resp = await pool.submit_request(req)
 
     try:
