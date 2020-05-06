@@ -33,6 +33,7 @@ exportEnvironment() {
   export GENESIS_URL=${GENESIS_URL:-http://$DOCKERHOST:9000/genesis}
   export STORAGE_PATH=${STORAGE_PATH:-/tmp/tails-files}
   export LOG_LEVEL=${LOG_LEVEL:-INFO}
+  export TAILS_SERVER_URL=${TAILS_SERVER_URL:-http://$DOCKERHOST:6543}
 }
 
 # =================================================================================================================
@@ -47,7 +48,16 @@ build)
   ;;
 start|up)
   exportEnvironment "$@"
-  docker-compose up
+  docker-compose up tails-server
+  echo "Run './manage logs' for logs" 
+  ;;
+test)
+  exportEnvironment "$@"
+  docker-compose up -d tails-server
+  docker-compose run tester --genesis-url $GENESIS_URL --tails-server-url $GENESIS_URL
+  ;;
+logs)
+  docker-compose logs -f
   ;;
 down)
   docker-compose down
