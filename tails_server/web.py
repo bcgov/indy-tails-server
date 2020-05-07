@@ -86,6 +86,7 @@ async def put_file(request):
         )
 
     if not revocation_registry_definition:
+        LOGGER.warn(f"Revocation registry not found for id {revocation_reg_id}")
         raise web.HTTPNotFound()
 
     tails_hash = revocation_registry_definition["value"]["tailsHash"]

@@ -18,5 +18,3 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
-    command: >
-      python integration.py --genesis-url $GENESIS_URL
