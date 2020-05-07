@@ -8,10 +8,6 @@ import indy_vdr
 logger = logging.getLogger(__name__)
 
 
-class GenesisDecodeError(Exception):
-    pass
-
-
 class BadGenesisError(Exception):
     pass
 
@@ -20,21 +16,11 @@ class BadRevocationRegistryIdError(Exception):
     pass
 
 
-async def get_rev_reg_def(b64_genesis, rev_reg_id, storage_path):
-    # Decode base into genesis transactions
-    try:
-        genesis_txn = base64.decodestring(str.encode(b64_genesis))
-    except BinAsciiError:
-        logger.warn(
-            "Could not decode genesis transactions for request with rev_reg_id: "
-            + f"{rev_reg_id}"
-        )
-        raise GenesisDecodeError()
-
+async def get_rev_reg_def(genesis_txn_bytes, rev_reg_id, storage_path):
     # Write the genesis transactions to the file system
     with NamedTemporaryFile("w+b") as tmp_file:
         # Let's test the genesis file before we store it permanently
-        tmp_file.write(genesis_txn)
+        tmp_file.write(genesis_txn_bytes)
         tmp_file.seek(0)
         # Try to connect to ledger
         try:

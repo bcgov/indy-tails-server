@@ -8,18 +8,13 @@ from aiohttp import web
 
 from .ledger import (
     get_rev_reg_def,
-    GenesisDecodeError,
     BadGenesisError,
     BadRevocationRegistryIdError,
 )
 
-from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
+from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
 
 LOGGER = logging.getLogger(__name__)
-
-REVOCATION_REGISTRY_ID_HEADER = "X-Revocation-Registry-ID"
-EXPECTED_CONTENT_TYPE = "application/octet-stream"
-CHUNK_SIZE = 1024
 
 routes = web.RouteTableDef()
 
@@ -53,43 +48,51 @@ async def get_file(request):
 async def put_file(request):
     storage_path = request.app["settings"]["storage_path"]
 
-    # Check content-type for octet stream
+    # Check content-type for multipart
     content_type_header = request.headers.get("Content-Type")
-    if content_type_header != EXPECTED_CONTENT_TYPE:
-        raise web.HTTPBadRequest(
-            text="Request must pass header 'Content-Type: octet-stream'"
-        )
+    if "multipart" not in content_type_header:
+        LOGGER.debug(f"Bad Content-Type header: {content_type_header}")
+        raise web.HTTPBadRequest(text="Expected mutlipart content type")
 
-    # Grab genesis transactions as base64
-    b64_genesis = request.headers.get("X-Genesis-Transactions")
-    if not b64_genesis:
+    reader = await request.multipart()
+
+    # Get genesis transactions
+    field = await reader.next()
+    if field.name != "genesis":
+        LOGGER.debug(f"First field is not `genesis`, it's {field.name}")
         raise web.HTTPBadRequest(
-            text="Request must pass X-Genesis-Transactions header "
-            + "containing base64 encoded genesis transactions for ledger"
+            text="First field in multipart request must have name 'genesis'"
         )
+    genesis_txn_bytes = await field.read()
 
     # Lookup revocation registry and get tailsHash
     revocation_reg_id = request.match_info["revocation_reg_id"]
     try:
         revocation_registry_definition = await get_rev_reg_def(
-            b64_genesis, revocation_reg_id, storage_path
-        )
-    except GenesisDecodeError:
-        raise web.HTTPBadRequest(
-            text="X-Genesis-Transactions header contains malformed base64 encoding."
+            genesis_txn_bytes, revocation_reg_id, storage_path
         )
     except BadGenesisError:
+        LOGGER.debug(f"Received invalid genesis transactions")
         raise web.HTTPBadRequest(text="Genesis transactions are not valid.")
     except BadRevocationRegistryIdError:
+        LOGGER.debug(f"Revocation registry id is not valid: {revocation_reg_id}")
         raise web.HTTPBadRequest(
             text=f"Revocation registry ID is not valid: {revocation_reg_id}."
         )
 
     if not revocation_registry_definition:
-        LOGGER.warn(f"Revocation registry not found for id {revocation_reg_id}")
+        LOGGER.debug(f"Revocation registry not found for id {revocation_reg_id}")
         raise web.HTTPNotFound()
 
     tails_hash = revocation_registry_definition["value"]["tailsHash"]
+
+    # Get second field
+    field = await reader.next()
+    if field.name != "tails":
+        LOGGER.debug(f"Second field is not `tails`, it's {field.name}")
+        raise web.HTTPBadRequest(
+            text="Second field in multipart request must have name 'tails'"
+        )
 
     # Process the file in chunks so we don't explode on large files.
     # Construct hash and write file in chunks.
@@ -101,7 +104,7 @@ async def put_file(request):
         # 'x' mode == O_EXCL | O_CREAT
         with NamedTemporaryFile("w+b") as tmp_file:
             while True:
-                chunk = await request.content.readany()
+                chunk = await field.read_chunk(CHUNK_SIZE)
                 if not chunk:
                     break
                 sha256.update(chunk)

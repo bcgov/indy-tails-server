@@ -5,6 +5,7 @@ import base64
 import json
 import os
 from random import randrange
+import aiofiles
 
 from tempfile import NamedTemporaryFile
 
@@ -131,12 +132,12 @@ async def run_tests(genesis_url, tails_server_url):
     log_event("Setting up indy environment...")
     log_event("Downloading genesis transactions...")
     async with session.get(genesis_url) as resp:
-        with NamedTemporaryFile("w+b", delete=False) as tmp_file:
-            tmp_file.write(await resp.read())
-            tmp_file.seek(0)
+        with NamedTemporaryFile("w+b", delete=False) as genesis_file:
+            genesis_file.write(await resp.read())
+            genesis_file.seek(0)
 
     log_event("Connecting to ledger...")
-    pool = await connect_to_ledger(tmp_file.name)
+    pool = await connect_to_ledger(genesis_file.name)
     log_event("Creating wallet...")
     await create_issuer_wallet()
     log_event("Publishing schema to ledger...")
@@ -148,137 +149,162 @@ async def run_tests(genesis_url, tails_server_url):
     revo_reg_def = await publish_revoc_reg(pool, "1")
     pool.close()
 
-    await test_happy_path(genesis_url, tails_server_url, revo_reg_def)
+    await test_happy_path(genesis_file.name, tails_server_url, revo_reg_def)
 
-    pool = await connect_to_ledger(tmp_file.name)
+    pool = await connect_to_ledger(genesis_file.name)
     log_event("Publishing revocation registry to ledger...")
     revo_reg_def = await publish_revoc_reg(pool, "2")
     pool.close()
 
-    await test_bad_revoc_reg_id_404(genesis_url, tails_server_url, revo_reg_def)
+    await test_bad_revoc_reg_id_404(genesis_file.name, tails_server_url, revo_reg_def)
 
-    pool = await connect_to_ledger(tmp_file.name)
+    pool = await connect_to_ledger(genesis_file.name)
     log_event("Publishing revocation registry to ledger...")
     revo_reg_def = await publish_revoc_reg(pool, "3")
     pool.close()
 
-    await test_upload_already_exist(genesis_url, tails_server_url, revo_reg_def)
+    await test_upload_already_exist(genesis_file.name, tails_server_url, revo_reg_def)
 
-    pool = await connect_to_ledger(tmp_file.name)
+    pool = await connect_to_ledger(genesis_file.name)
     log_event("Publishing revocation registry to ledger...")
     revo_reg_def = await publish_revoc_reg(pool, "4")
     pool.close()
 
-    await test_upload_bad_tails_file(genesis_url, tails_server_url, revo_reg_def)
+    await test_upload_bad_tails_file(genesis_file.name, tails_server_url, revo_reg_def)
+
+    pool = await connect_to_ledger(genesis_file.name)
+    log_event("Publishing revocation registry to ledger...")
+    revo_reg_def = await publish_revoc_reg(pool, "5")
+    pool.close()
+
+    await test_bad_content_type(genesis_file.name, tails_server_url, revo_reg_def)
+
+    pool = await connect_to_ledger(genesis_file.name)
+    log_event("Publishing revocation registry to ledger...")
+    revo_reg_def = await publish_revoc_reg(pool, "6")
+    pool.close()
+
+    await test_race_upload(genesis_file.name, tails_server_url, revo_reg_def)
 
 
-async def test_happy_path(genesis_url, tails_server_url, revo_reg_def):
+async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing happy path...", panel=True)
     session = aiohttp.ClientSession()
 
-    async with session.get(genesis_url) as resp:
-        genesis_txn_bytes = await resp.read()
-    b64_genesis = base64.b64encode(genesis_txn_bytes)
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as f:
-        tails_file = f.read()
+    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
+        genesis_path, "rb"
+    ) as genesis_file:
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
-            data=tails_file,
-            headers={"X-Genesis-Transactions": b64_genesis.decode("utf-8")},
+            data={"genesis": genesis_file, "tails": tails_file},
         ) as resp:
             assert resp.status == 200
     log_event("Passed")
 
 
-async def test_bad_revoc_reg_id_404(genesis_url, tails_server_url, revo_reg_def):
+async def test_bad_revoc_reg_id_404(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad revocation registry id...", panel=True)
     session = aiohttp.ClientSession()
 
-    async with session.get(genesis_url) as resp:
-        genesis_txn_bytes = await resp.read()
-
-    b64_genesis = base64.b64encode(genesis_txn_bytes)
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as f:
-        tails_file = f.read()
+    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
+        genesis_path, "rb"
+    ) as genesis_file:
         async with session.put(
             f"{tails_server_url}/bad-id",
-            data=tails_file,
-            headers={"X-Genesis-Transactions": b64_genesis.decode("utf-8")},
+            data={"genesis": genesis_file, "tails": tails_file},
         ) as resp:
             assert resp.status == 400
 
     log_event("Passed")
 
 
-async def test_upload_already_exist(genesis_url, tails_server_url, revo_reg_def):
+async def test_upload_already_exist(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing upload already exists...", panel=True)
     session = aiohttp.ClientSession()
 
-    async with session.get(genesis_url) as resp:
-        genesis_txn_bytes = await resp.read()
-
-    b64_genesis = base64.b64encode(genesis_txn_bytes)
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as f:
-        tails_file = f.read()
+    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
+        genesis_path, "rb"
+    ) as genesis_file:
         # First upload
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
-            data=tails_file,
-            headers={"X-Genesis-Transactions": b64_genesis.decode("utf-8")},
+            data={"genesis": genesis_file, "tails": tails_file},
         ) as resp:
             assert resp.status == 200
+
+    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
+        genesis_path, "rb"
+    ) as genesis_file:
         # Second upload
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
-            data=tails_file,
-            headers={"X-Genesis-Transactions": b64_genesis.decode("utf-8")},
+            data={"genesis": genesis_file, "tails": tails_file},
         ) as resp:
             assert resp.status == 409
 
     log_event("Passed")
 
 
-async def test_upload_bad_tails_file(genesis_url, tails_server_url, revo_reg_def):
+async def test_upload_bad_tails_file(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad tails file...", panel=True)
     session = aiohttp.ClientSession()
 
-    async with session.get(genesis_url) as resp:
-        genesis_txn_bytes = await resp.read()
-
-    b64_genesis = base64.b64encode(genesis_txn_bytes)
-    with NamedTemporaryFile("w+b", delete=False) as tmp_file:
-        tmp_file.write(b"asd")
-        tmp_file.seek(0)
-        tails_file = tmp_file.read()
+    with open(genesis_path, "rb") as genesis_file:
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
-            data=tails_file,
-            headers={"X-Genesis-Transactions": b64_genesis.decode("utf-8")},
+            data={"genesis": genesis_file, "tails": b"bad bytes"},
         ) as resp:
             assert resp.status == 400
 
     log_event("Passed")
 
 
-async def test_bad_content_type(genesis_url, tails_server_url, revo_reg_def):
+async def test_bad_content_type(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad content type...", panel=True)
     session = aiohttp.ClientSession()
 
-    async with session.get(genesis_url) as resp:
-        genesis_txn_bytes = await resp.read()
-
-    b64_genesis = base64.b64encode(genesis_txn_bytes)
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as f:
-        tails_file = f.read()
+    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
+        genesis_path, "rb"
+    ) as genesis_file:
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
-            data=tails_file,
-            headers={
-                "X-Genesis-Transactions": b64_genesis.decode("utf-8"),
-                "Content-Type": "bad",
-            },
+            data={"genesis": genesis_file, "tails": tails_file},
+            headers={"Content-Type": "bad"},
         ) as resp:
             assert resp.status == 400
+
+    log_event("Passed")
+
+
+async def test_race_upload(genesis_path, tails_server_url, revo_reg_def):
+    log_event("Testing upload race condition...", panel=True)
+    session = aiohttp.ClientSession()
+
+    async def file_sender(file_name, slow):
+        async with aiofiles.open(file_name, "rb") as f:
+            if slow:
+                await asyncio.sleep(100)
+            chunk = await f.read(64 * 1024)
+            while chunk:
+                yield chunk
+                chunk = await f.read(64 * 1024)
+
+    async def upload(slow):
+        with open(genesis_path, "rb") as genesis_file:
+            async with session.put(
+                f"{tails_server_url}/{revo_reg_def['id']}",
+                data={
+                    "genesis": genesis_file,
+                    "tails": file_sender(revo_reg_def["value"]["tailsLocation"], slow),
+                },
+                headers={"Content-Type": "bad"},
+            ) as resp:
+                return resp
+
+    resp = await upload(False)
+    rprint(resp)
+    resp = await upload(False)
+    rprint(resp)
 
     log_event("Passed")
 

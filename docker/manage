@@ -55,7 +55,7 @@ test)
   exportEnvironment "$@"
   docker-compose up -d tails-server
   docker-compose run tester --genesis-url $GENESIS_URL --tails-server-url $TAILS_SERVER_URL
-  docker-compose down
+  # docker-compose down
   ;;
 logs)
   docker-compose logs -f
