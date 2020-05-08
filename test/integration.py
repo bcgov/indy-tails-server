@@ -34,7 +34,7 @@ SCHEMA = {
 }
 
 CRED_DEF = {
-    "tag": "cred_def_tag2",
+    "tag": "cred_def_tag",
     "type": "CL",
     "config": json.dumps({"support_revocation": True}),
 }
