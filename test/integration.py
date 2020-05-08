@@ -4,6 +4,8 @@ import aiohttp
 import base64
 import json
 import os
+import hashlib
+import base58
 from random import randrange
 import aiofiles
 
@@ -184,7 +186,21 @@ async def run_tests(genesis_url, tails_server_url):
     revo_reg_def = await publish_revoc_reg(pool, "6")
     pool.close()
 
+    await test_bad_field_order(genesis_file.name, tails_server_url, revo_reg_def)
+
+    pool = await connect_to_ledger(genesis_file.name)
+    log_event("Publishing revocation registry to ledger...")
+    revo_reg_def = await publish_revoc_reg(pool, "7")
+    pool.close()
+
     await test_race_upload(genesis_file.name, tails_server_url, revo_reg_def)
+
+    pool = await connect_to_ledger(genesis_file.name)
+    log_event("Publishing revocation registry to ledger...")
+    revo_reg_def = await publish_revoc_reg(pool, "8")
+    pool.close()
+
+    await test_race_download(genesis_file.name, tails_server_url, revo_reg_def)
 
 
 async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):
@@ -276,20 +292,38 @@ async def test_bad_content_type(genesis_path, tails_server_url, revo_reg_def):
     log_event("Passed")
 
 
+async def test_bad_field_order(genesis_path, tails_server_url, revo_reg_def):
+    log_event("Testing happy path...", panel=True)
+    session = aiohttp.ClientSession()
+
+    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
+        genesis_path, "rb"
+    ) as genesis_file:
+        async with session.put(
+            f"{tails_server_url}/{revo_reg_def['id']}",
+            data={"tails": tails_file, "genesis": genesis_file},
+        ) as resp:
+            assert resp.status == 400
+    log_event("Passed")
+
+
 async def test_race_upload(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing upload race condition...", panel=True)
     session = aiohttp.ClientSession()
 
     async def file_sender(file_name, slow):
         async with aiofiles.open(file_name, "rb") as f:
-            if slow:
-                await asyncio.sleep(100)
             chunk = await f.read(64 * 1024)
             while chunk:
                 yield chunk
+                if slow:
+                    await asyncio.sleep(5)
                 chunk = await f.read(64 * 1024)
 
     async def upload(slow):
+        # Ensure that the slow upload opens the file on the server first...
+        if not slow:
+            await asyncio.sleep(50)
         with open(genesis_path, "rb") as genesis_file:
             async with session.put(
                 f"{tails_server_url}/{revo_reg_def['id']}",
@@ -297,14 +331,61 @@ async def test_race_upload(genesis_path, tails_server_url, revo_reg_def):
                     "genesis": genesis_file,
                     "tails": file_sender(revo_reg_def["value"]["tailsLocation"], slow),
                 },
-                headers={"Content-Type": "bad"},
             ) as resp:
                 return resp
 
-    resp = await upload(False)
-    rprint(resp)
-    resp = await upload(False)
-    rprint(resp)
+    # Make sure the second request waits on the file lock
+    # and eventually returns 409 when it can read the file
+    # since the file already exists
+    resp1, resp2 = await asyncio.gather(upload(True), upload(False))
+    assert resp1.status == 200
+    assert resp2.status == 409
+
+    log_event("Passed")
+
+
+async def test_race_download(genesis_path, tails_server_url, revo_reg_def):
+    log_event("Testing download race condition...", panel=True)
+    session = aiohttp.ClientSession()
+
+    async def file_sender(file_name):
+        async with aiofiles.open(file_name, "rb") as f:
+            chunk = await f.read(64 * 1024)
+            while chunk:
+                yield chunk
+                await asyncio.sleep(5)
+                chunk = await f.read(64 * 1024)
+
+    async def upload():
+        with open(genesis_path, "rb") as genesis_file:
+            async with session.put(
+                f"{tails_server_url}/{revo_reg_def['id']}",
+                data={
+                    "genesis": genesis_file,
+                    "tails": file_sender(revo_reg_def["value"]["tailsLocation"]),
+                },
+            ) as resp:
+                return resp
+
+    sha256 = hashlib.sha256()
+
+    async def download():
+        # Ensure that the slow upload opens the file on the server first...
+        await asyncio.sleep(50)
+        async with session.get(f"{tails_server_url}/{revo_reg_def['id']}") as resp:
+            # Upload is complete so this should succeed
+            assert resp.status == 200
+            data = await resp.read()
+            sha256.update(data)
+            b58_digest = base58.b58encode(sha256.digest()).decode("utf-8")
+            # Check file integrity
+            assert b58_digest == revo_reg_def["value"]["tailsHash"]
+
+    # Make sure the upload succeeds opens the connection first,
+    # and the download waits for the upload to complete before streaming
+    # response data
+    resp1, resp2 = await asyncio.gather(upload(), download())
+    assert resp1.status == 200
 
     log_event("Passed")
 
