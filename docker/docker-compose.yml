@@ -5,7 +5,7 @@ services:
     networks:
       - tails-server
     ports:
-      - 4040:4040
+      - 4044:4040
     command: ngrok http tails-server:6543 --log stdout
   tails-server:
     build:
