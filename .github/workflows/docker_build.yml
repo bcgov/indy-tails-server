@@ -1,0 +1,59 @@
+name: Python CI with Docker
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+      with:
+        path: main
+    - name: Checkout ston-config
+      uses: actions/checkout@v2
+      with:
+        repository: sktston/ston-config
+        token: ${{ secrets.PAT }} 
+        path: config
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-2
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    - name: Set environment variables
+      run: |
+        echo "::set-env name=ECR_REGISTRY::${{ steps.login-ecr.outputs.registry }}"
+        echo "::set-env name=ECR_REPOSITORY::ston/tails"
+        echo "::set-env name=IMAGE_TAG::${{ github.sha }}"
+        echo "::set-env name=DOCKERFILE_PATH::docker/Dockerfile.tails-server" 
+      
+    - name: Build, tag, and push image to Amazon ECR
+      working-directory: main
+      run: |
+        docker build -f $DOCKERFILE_PATH -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+    
+    - name: Setup Kustomize
+      uses: imranismail/setup-kustomize@v1
+      with:
+        kustomize-version: "3.8.1"
+    - name: Update the image tag with Kustomize
+      working-directory: config
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        cd overlays/dev
+        kustomize edit set image $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        git add kustomization.yaml
+        git commit -m "Deploying image $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        git push origin master
