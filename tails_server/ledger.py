@@ -35,9 +35,7 @@ async def get_rev_reg_def(genesis_txn_bytes, rev_reg_id, storage_path):
 
         # Get transaction from ledger
         try:
-            req = indy_vdr.ledger.build_get_revoc_reg_def_request(
-                None, rev_reg_id
-            )
+            req = indy_vdr.ledger.build_get_revoc_reg_def_request(None, rev_reg_id)
         except indy_vdr.error.VdrError as e:
             logger.info(e.code)
             if e.code == indy_vdr.VdrErrorCode.INPUT:

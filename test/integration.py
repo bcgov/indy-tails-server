@@ -217,6 +217,15 @@ async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):
             assert resp.status == 200
     log_event("Passed")
 
+    # Find matching tails file
+    async with session.get(
+        f"{tails_server_url}/match/{revo_reg_def['credDefId']}"
+    ) as resp:
+        # Upload is complete so this should succeed
+        assert resp.status == 200
+        matches = json.loads(await resp.read())
+        assert matches
+
 
 async def test_bad_revoc_reg_id_404(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad revocation registry id...", panel=True)

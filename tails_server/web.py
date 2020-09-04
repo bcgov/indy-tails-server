@@ -2,21 +2,34 @@ import logging
 import hashlib
 import base58
 import os
+
+from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
 from aiohttp import web
 
+from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
 from .ledger import (
     get_rev_reg_def,
     BadGenesisError,
     BadRevocationRegistryIdError,
 )
 
-from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
-
 LOGGER = logging.getLogger(__name__)
 
 routes = web.RouteTableDef()
+
+
+@routes.get("/match/{substring}")
+async def match_files(request):
+    substring = request.match_info["substring"]  # e.g., cred def id, issuer DID, tag
+    storage_path = request.app["settings"]["storage_path"]
+    tails_files = [
+        join(storage_path, f)
+        for f in os.listdir(storage_path)
+        if isfile(join(storage_path, f)) and substring in f
+    ]
+    return web.json_response(tails_files)
 
 
 @routes.get("/{revocation_reg_id}")
