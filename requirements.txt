@@ -1,2 +1,3 @@
 aiohttp==3.6.2
 base58
+elastic-apm~=5.9.0

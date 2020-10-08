@@ -5,6 +5,7 @@ import os
 from tempfile import NamedTemporaryFile
 
 from aiohttp import web
+from elasticapm.contrib.aiohttp import ElasticAPM
 
 from .ledger import (
     get_rev_reg_def,
@@ -139,6 +140,8 @@ def start(settings):
 
     # Add routes
     app.add_routes(routes)
+
+    apm = ElasticAPM(app)
 
     web.run_app(
         app,
