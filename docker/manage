@@ -12,7 +12,11 @@ usage() {
   cat <<-EOF
       Usage: $0 [command] [options]
       Commands:
-      start - Run tails-server
+      build       - Build the tails-server docker images
+      start | up  - Run tails-server
+      logs        - To tail the logs of running containers (ctrl-c to exit).
+      stop | down - Stop tails-server
+      rm          - Stop tails-server and remove volumes
 EOF
   exit 1
 }
@@ -27,6 +31,13 @@ exportEnvironment() {
       *=*)
         export "${arg}"
         ;;
+      --logs)
+        TAIL_LOGS=1
+        ;;
+      *)
+        # If not recognized, save it for later procesing ...
+        set -- "$@" "$arg"
+        ;;
     esac
   done
 
@@ -34,6 +45,33 @@ exportEnvironment() {
   export STORAGE_PATH=${STORAGE_PATH:-/tmp/tails-files}
   export LOG_LEVEL=${LOG_LEVEL:-INFO}
   export TAILS_SERVER_URL=${TAILS_SERVER_URL:-http://$DOCKERHOST:6543}
+}
+
+function logs() {
+  (
+    local OPTIND
+    local unset _force
+    local unset no_tail
+    while getopts ":f-:" FLAG; do
+      case $FLAG in
+        f ) local _force=1 ;;
+        - ) 
+            case ${OPTARG} in
+                "no-tail"*) no_tail=1
+              ;;
+            esac
+      esac
+    done
+    shift $((OPTIND-1))
+
+    log_args=()
+    (( no_tail != 1 )) && log_args+=( '-f' )
+    if [ ! -z "${TAIL_LOGS}" ] || [ ! -z "${_force}" ]; then
+      docker-compose \
+        --log-level ERROR logs \
+         "${log_args[@]}" "$@"
+    fi
+  )
 }
 
 # =================================================================================================================
@@ -48,7 +86,8 @@ build)
   ;;
 start|up)
   exportEnvironment "$@"
-  docker-compose up ngrok-tails-server tails-server
+  docker-compose up -d ngrok-tails-server tails-server
+  logs
   echo "Run './manage logs' for logs" 
   ;;
 test)
@@ -60,7 +99,10 @@ test)
 logs)
   docker-compose logs -f
   ;;
-down)
+stop)
+  docker-compose stop
+  ;;
+down|rm)
   docker-compose down
   ;;
 *)

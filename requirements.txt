@@ -1,3 +1,7 @@
 aiohttp==3.6.2
 base58
 elastic-apm~=5.9.0
+
+# temporary to fix transitive dependency issues
+multidict<5.0.0
+yarl==1.6.0
