@@ -40,10 +40,10 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v1
     - name: Set environment variables
       run: |
-        echo "::set-env name=ECR_REGISTRY::${{ steps.login-ecr.outputs.registry }}"
-        echo "::set-env name=ECR_REPOSITORY::ston/tails"
-        echo "::set-env name=IMAGE_TAG::${{ github.sha }}"
-        echo "::set-env name=DOCKERFILE_PATH::docker/Dockerfile.tails-server" 
+        echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
+        echo "ECR_REPOSITORY=ston/tails" >> $GITHUB_ENV
+        echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+        echo "DOCKERFILE_PATH=docker/Dockerfile.tails-server" >> $GITHUB_ENV
       
     - name: Build, tag, and push image to Amazon ECR
       id: build-and-push-to-ecr
