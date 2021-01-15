@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
 env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      NCR_REGISTRY: dev-did.ncr.fin-ntruss.com
+      NCR_REGISTRY_PUBLIC: dev-did.ncr.fin-ntruss.com
+      NCR_REGISTRY_PRIVATE: r5p79moi.private-ncr.fin-ntruss.com
       NCR_REPOSITORY: ston/tails
       IMAGE_TAG: ${{ github.sha }}
       DOCKERFILE_PATH: docker/Dockerfile.tails-server
@@ -29,14 +30,14 @@ jobs:
       id: log-in-to-ncr
       uses: docker/login-action@v1
       with:
-        registry: ${{ env.NCR_REGISTRY }}
+        registry: ${{ env.NCR_REGISTRY_PUBLIC }}
         username: ${{ secrets.NCP_ACCESS_KEY_ID }}
         password: ${{ secrets.NCP_SECRET_KEY }}
     
     - name: Build, tag, and push image to NCP Container registry
       id: build-and-push-to-ncr
       run: |
-        docker build -f $DOCKERFILE_PATH -t $NCR_REGISTRY/$NCR_REPOSITORY:$IMAGE_TAG .
+        docker build -f $DOCKERFILE_PATH -t $NCR_REGISTRY_PUBLIC/$NCR_REPOSITORY:$IMAGE_TAG .
         docker push $NCR_REGISTRY/$NCR_REPOSITORY:$IMAGE_TAG
         
     - name: Slack messsae - end
@@ -73,9 +74,9 @@ jobs:
         git config user.email github-actions@github.com
         git pull origin master
         cd overlays/dev
-        kustomize edit set image $NCR_REGISTRY/$NCR_REPOSITORY:$IMAGE_TAG
+        kustomize edit set image $NCR_REGISTRY_PRIVATE/$NCR_REPOSITORY:$IMAGE_TAG
         git add kustomization.yaml
-        git commit -m "Deploying image $NCR_REGISTRY/$NCR_REPOSITORY:$IMAGE_TAG"
+        git commit -m "Deploying image $NCR_REGISTRY_PRIVATE/$NCR_REPOSITORY:$IMAGE_TAG"
         git push origin master
     
     - name: Slack messsae - end
