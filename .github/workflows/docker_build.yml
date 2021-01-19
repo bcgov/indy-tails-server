@@ -66,7 +66,7 @@ jobs:
       id: setup-kustomize
       uses: imranismail/setup-kustomize@v1
       with:
-        kustomize-version: "3.8.1"
+        kustomize-version: "3.9.2"
     - name: Update the image tag with Kustomize
       id: update-config-with-kustomize
       run: |
