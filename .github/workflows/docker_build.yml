@@ -14,7 +14,7 @@ env:
       DOCKERFILE_PATH: docker/Dockerfile.tails-server
 jobs:
   build-and-push-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     
     steps:
     - name: Slack message - start
@@ -49,7 +49,7 @@ jobs:
     
   update-configuration:
     needs: build-and-push-image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - name: Slack message - start
