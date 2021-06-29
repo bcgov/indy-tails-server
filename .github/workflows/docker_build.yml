@@ -74,7 +74,7 @@ jobs:
         git config user.name github-actions
         git config user.email github-actions@github.com
         git pull origin develop
-        cd overlays/dev
+        cd overlays/${GITHUB_REF##*/}
         kustomize edit set image $NCR_REGISTRY_PRIVATE/$NCR_REPOSITORY:$IMAGE_TAG
         git add kustomization.yaml
         git commit -m "Deploying image $NCR_REGISTRY_PRIVATE/$NCR_REPOSITORY:$IMAGE_TAG"
