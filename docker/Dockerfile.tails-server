@@ -1,4 +1,4 @@
-FROM bcgovimages/von-image:next-1
+FROM bcgovimages/von-image:py36-1.16-0
 
 ADD requirements.txt .
 ADD requirements.dev.txt .

@@ -4,3 +4,4 @@ base58
 # temporary to fix transitive dependency issues
 multidict<5.0.0
 yarl==1.6.0
+indy_vdr~=0.2.0
