@@ -7,7 +7,6 @@ from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
 from aiohttp import web
-from elasticapm.contrib.aiohttp import ElasticAPM
 
 from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
 from .ledger import (
@@ -153,8 +152,6 @@ def start(settings):
 
     # Add routes
     app.add_routes(routes)
-
-    apm = ElasticAPM(app)
 
     web.run_app(
         app,
