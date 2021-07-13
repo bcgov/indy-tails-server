@@ -1,6 +1,6 @@
 aiohttp==3.6.2
 base58
-elastic-apm~=5.9.0
+elastic-apm~=6.3.2
 
 # temporary to fix transitive dependency issues
 multidict<5.0.0
