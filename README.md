@@ -1,3 +1,6 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Lifecycle:Stable](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](README.md)
+
 # VON Tails Server
 
 > This softare is designed to run on linux kernel 3.11 or newer.
