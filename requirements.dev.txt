@@ -1,4 +1,3 @@
 rich
-cffi==1.14.6
 pynacl
 aiofiles
