@@ -84,7 +84,7 @@ shift || COMMAND=usage
 
 case "${COMMAND}" in
 build)
-  docker-compose build
+  docker-compose build $@
   ;;
 start|up)
   exportEnvironment "$@"
