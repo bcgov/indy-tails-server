@@ -20,6 +20,11 @@ LOGGER = logging.getLogger(__name__)
 routes = web.RouteTableDef()
 
 
+@routes.get("/health/check")
+async def health(request):
+    return web.json_response({"Status": "OK"})
+
+
 @routes.get("/match/{substring}")
 async def match_files(request):
     substring = request.match_info["substring"]  # e.g., cred def id, issuer DID, tag
