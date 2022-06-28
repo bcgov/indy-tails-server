@@ -31,10 +31,10 @@ if __name__ == "__main__":
         package_data={"tails_server": ["requirements.txt"]},
         install_requires=parse_requirements("requirements.txt"),
         tests_require=parse_requirements("requirements.dev.txt"),
-        python_requires=">=3.7.0",
+        python_requires=">=3.6.3",
         classifiers=[
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3.6.3",
             "License :: OSI Approved :: Apache Software License",
             "Operating System :: OS Independent",
         ],

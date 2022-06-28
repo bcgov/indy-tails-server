@@ -1,7 +1,7 @@
 #!/bin/bash
 export MSYS_NO_PATHCONV=1
 # getDockerHost; for details refer to https://github.com/bcgov/DITP-DevOps/tree/main/code/snippets#getdockerhost
-. /dev/stdin <<<"$(cat <(curl -s --raw https://raw.githubusercontent.com/bcgov/DITP-DevOps/main/code/snippets/getDockerHost))" 
+. /dev/stdin <<<"$(cat <(curl -s --raw https://raw.githubusercontent.com/bcgov/DITP-DevOps/main/code/snippets/getDockerHost))"
 export DOCKERHOST=$(getDockerHost)
 set -e
 
@@ -37,7 +37,7 @@ exportEnvironment() {
         TAIL_LOGS=1
         ;;
       *)
-        # If not recognized, save it for later procesing ...
+        # If not recognized, save it for later processing ...
         set -- "$@" "$arg"
         ;;
     esac
@@ -57,7 +57,7 @@ function logs() {
     while getopts ":f-:" FLAG; do
       case $FLAG in
         f ) local _force=1 ;;
-        - ) 
+        - )
             case ${OPTARG} in
                 "no-tail"*) no_tail=1
               ;;
@@ -88,15 +88,15 @@ build)
   ;;
 start|up)
   exportEnvironment "$@"
-  docker-compose up -d ngrok-tails-server tails-server
+  docker-compose up --build --force-recreate -d ngrok-tails-server tails-server
   logs
-  echo "Run './manage logs' for logs" 
+  echo "Run './manage logs' for logs"
   ;;
 test)
   exportEnvironment "$@"
-  docker-compose up -d ngrok-tails-server tails-server
+  docker-compose up --build --force-recreate -d ngrok-tails-server tails-server
   docker-compose run tester --genesis-url $GENESIS_URL --tails-server-url $TAILS_SERVER_URL
-  # docker-compose down
+  docker-compose down --volumes --remove-orphans
   ;;
 logs)
   docker-compose logs -f
@@ -105,7 +105,7 @@ stop)
   docker-compose stop
   ;;
 down|rm)
-  docker-compose down
+  docker-compose down --volumes --remove-orphans
   ;;
 *)
   usage
