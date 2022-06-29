@@ -96,7 +96,7 @@ test)
   exportEnvironment "$@"
   docker-compose up --build --force-recreate -d ngrok-tails-server tails-server
   docker-compose run tester --genesis-url $GENESIS_URL --tails-server-url $TAILS_SERVER_URL
-  docker-compose down --volumes --remove-orphans
+  # docker-compose down --volumes --remove-orphans
   ;;
 logs)
   docker-compose logs -f
