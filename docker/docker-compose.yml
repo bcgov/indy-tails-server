@@ -1,4 +1,5 @@
-version: "3"
+version: "3.8"
+
 services:
   ngrok-tails-server:
     image: wernight/ngrok
@@ -7,6 +8,7 @@ services:
     ports:
       - 4044:4040
     command: ngrok http tails-server:6543 --log stdout
+
   tails-server:
     build:
       context: ..
@@ -21,9 +23,11 @@ services:
         --port 6543
         --storage-path $STORAGE_PATH
         --log-level $LOG_LEVEL
+
   tester:
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
+
 networks:
   tails-server:

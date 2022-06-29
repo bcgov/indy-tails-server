@@ -421,4 +421,5 @@ if __name__ == "__main__":
     args = PARSER.parse_args()
     genesis_url = args.genesis_url
     tails_server_url = args.tails_server_url
-    asyncio.run(run_tests(genesis_url, tails_server_url))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(run_tests(genesis_url, tails_server_url))
