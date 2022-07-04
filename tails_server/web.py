@@ -9,11 +9,8 @@ from tempfile import NamedTemporaryFile
 from aiohttp import web
 
 from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
-from .ledger import (
-    get_rev_reg_def,
-    BadGenesisError,
-    BadRevocationRegistryIdError,
-)
+from .ledger.BaseLedger import BadGenesisError, BadRevocationRegistryIdError
+from .ledger_provider import LedgerProvider, BadLedgerError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,19 +66,36 @@ async def put_file(request):
 
     reader = await request.multipart()
 
+    # Get ledger type
+    field = await reader.next()
+    if field.name != "ledger_type":
+        LOGGER.debug(f"First field is not `ledger-type`, it's {field.name}")
+        raise web.HTTPBadRequest(
+            text="First field in multipart request must have name 'ledger-type'"
+        )
+    ledger_type = await field.read()
+
+    # Retrieve ledger instance
+    try:
+        ledger_provider = LedgerProvider(ledger_type)
+        ledger = ledger_provider.get_ledger()
+    except BadLedgerError:
+        LOGGER.debug(f"Received invalid ledger type")
+        raise web.HTTPBadRequest(text="Ledger type is not valid.")
+
     # Get genesis transactions
     field = await reader.next()
     if field.name != "genesis":
-        LOGGER.debug(f"First field is not `genesis`, it's {field.name}")
+        LOGGER.debug(f"Second field is not `genesis`, it's {field.name}")
         raise web.HTTPBadRequest(
-            text="First field in multipart request must have name 'genesis'"
+            text="Second field in multipart request must have name 'genesis'"
         )
     genesis_txn_bytes = await field.read()
 
     # Lookup revocation registry and get tailsHash
     revocation_reg_id = request.match_info["revocation_reg_id"]
     try:
-        revocation_registry_definition = await get_rev_reg_def(
+        revocation_registry_definition = await ledger.get_rev_reg_def(
             genesis_txn_bytes, revocation_reg_id, storage_path
         )
     except BadGenesisError:
@@ -102,9 +116,9 @@ async def put_file(request):
     # Get second field
     field = await reader.next()
     if field.name != "tails":
-        LOGGER.debug(f"Second field is not `tails`, it's {field.name}")
+        LOGGER.debug(f"Third field is not `tails`, it's {field.name}")
         raise web.HTTPBadRequest(
-            text="Second field in multipart request must have name 'tails'"
+            text="Third field in multipart request must have name 'tails'"
         )
 
     # Process the file in chunks so we don't explode on large files.

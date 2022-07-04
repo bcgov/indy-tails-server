@@ -104,8 +104,11 @@ logs)
 stop)
   docker-compose stop
   ;;
-down|rm)
+down)
   docker-compose down
+  ;;
+rm)
+  docker-compose down --rmi all
   ;;
 *)
   usage
