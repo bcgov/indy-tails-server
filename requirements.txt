@@ -1,6 +1,7 @@
-aiohttp==3.7.4
+aiohttp==3.8.1
 base58
+indy-vdr~=0.3.4
 
 # temporary to fix transitive dependency issues
 multidict<5.0.0
-yarl==1.6.0
+yarl==1.7.2

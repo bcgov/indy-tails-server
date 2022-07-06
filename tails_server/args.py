@@ -51,6 +51,20 @@ PARSER.add_argument(
     help="Specify the path to store files.",
 )
 
+PARSER.add_argument(
+    "--socks-proxy",
+    type=str,
+    required=False,
+    dest="socks_proxy",
+    metavar="<host>:<port>",
+    help=(
+        "Specifies the socks proxy (NOT http proxy) hostname and port in format "
+        "'hostname:port'. This is an optional parameter to be passed to ledger "
+        "pool configuration and ZMQ in case if tails-server is running "
+        "in a corporate/private network behind a corporate proxy and will "
+        "connect to the public (outside of corporate network) ledger pool"
+    ),
+)
 
 def get_settings():
     """Convert command line arguments to a settings dictionary."""
@@ -65,5 +79,6 @@ def get_settings():
     settings["log_level"] = args.log_level
 
     settings["storage_path"] = args.storage_path
+    settings["socks_proxy"] = args.socks_proxy
 
     return settings

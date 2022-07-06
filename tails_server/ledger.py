@@ -16,7 +16,7 @@ class BadRevocationRegistryIdError(Exception):
     pass
 
 
-async def get_rev_reg_def(genesis_txn_bytes, rev_reg_id, storage_path):
+async def get_rev_reg_def(genesis_txn_bytes, rev_reg_id, storage_path, socks_proxy = None):
     pool = None
     try:
         # Write the genesis transactions to the file system
@@ -26,7 +26,7 @@ async def get_rev_reg_def(genesis_txn_bytes, rev_reg_id, storage_path):
             tmp_file.seek(0)
             # Try to connect to ledger
             try:
-                pool = await indy_vdr.open_pool(transactions_path=tmp_file.name)
+                pool = await indy_vdr.open_pool(transactions_path=tmp_file.name, socks_proxy=socks_proxy)
             except indy_vdr.error.VdrError as e:
                 if e.code == indy_vdr.VdrErrorCode.INPUT:
                     raise BadGenesisError()

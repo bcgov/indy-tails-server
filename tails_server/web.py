@@ -60,6 +60,7 @@ async def get_file(request):
 @routes.put("/{revocation_reg_id}")
 async def put_file(request):
     storage_path = request.app["settings"]["storage_path"]
+    socks_proxy = request.app["settings"]["socks_proxy"]
 
     # Check content-type for multipart
     content_type_header = request.headers.get("Content-Type")
@@ -82,7 +83,7 @@ async def put_file(request):
     revocation_reg_id = request.match_info["revocation_reg_id"]
     try:
         revocation_registry_definition = await get_rev_reg_def(
-            genesis_txn_bytes, revocation_reg_id, storage_path
+            genesis_txn_bytes, revocation_reg_id, storage_path, socks_proxy
         )
     except BadGenesisError:
         LOGGER.debug(f"Received invalid genesis transactions")
