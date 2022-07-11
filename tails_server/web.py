@@ -9,7 +9,7 @@ from tempfile import NamedTemporaryFile
 from aiohttp import web
 
 from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
-from .ledger.BaseLedger import BadGenesisError, BadRevocationRegistryIdError
+from .ledger.base import BadGenesisError, BadRevocationRegistryIdError
 from .ledger_provider import LedgerProvider, BadLedgerError
 
 LOGGER = logging.getLogger(__name__)

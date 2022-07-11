@@ -3,7 +3,7 @@ from tempfile import NamedTemporaryFile
 
 from aiohttp import ClientSession
 
-from tails_server.ledger.BaseLedger import BaseLedger
+from tails_server.ledger.base import BaseLedger
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 class CentralizedSdkLedger(BaseLedger):
     """Indy ledger class."""
 
-    def __init__(self):
-        pass
+    BACKEND_NAME = "centralized"
 
     async def get_rev_reg_def(self, genesis_txn_bytes, rev_reg_id, storage_path):
         # Write the genesis transactions to the file system

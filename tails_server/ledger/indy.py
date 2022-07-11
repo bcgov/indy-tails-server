@@ -2,13 +2,15 @@ import logging
 import indy_vdr
 from tempfile import NamedTemporaryFile
 
-from tails_server.ledger.BaseLedger import BaseLedger, BadGenesisError, BadRevocationRegistryIdError
+from tails_server.ledger.base import BaseLedger, BadGenesisError, BadRevocationRegistryIdError
 
 logger = logging.getLogger(__name__)
 
 
 class IndySdkLedger(BaseLedger):
     """Indy ledger class."""
+
+    BACKEND_NAME = "indy"
 
     async def get_rev_reg_def(self, genesis_txn_bytes, rev_reg_id, storage_path):
         pool = None

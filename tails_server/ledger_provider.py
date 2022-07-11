@@ -1,6 +1,6 @@
 from tails_server.ledger.centralized import CentralizedSdkLedger
 from tails_server.ledger.indy import IndySdkLedger
-from tails_server.ledger.BaseLedger import BaseLedger
+from tails_server.ledger.base import BaseLedger
 
 
 class BadLedgerError(Exception):
@@ -14,8 +14,8 @@ class LedgerProvider:
     """
 
     TAILS_SERVER_SUPPORTED_LEDGERS = {
-        "indy": IndySdkLedger,
-        "centralized": CentralizedSdkLedger
+        IndySdkLedger.BACKEND_NAME: IndySdkLedger,
+        CentralizedSdkLedger.BACKEND_NAME: CentralizedSdkLedger
     }
 
     def __init__(self, ledger_type: bytearray):
