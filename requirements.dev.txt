@@ -1,3 +1,5 @@
 rich
 pynacl
 aiofiles
+
+python3_indy
