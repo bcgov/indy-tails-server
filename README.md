@@ -95,7 +95,8 @@ This software is designed to support scaling to as many machines or processes as
 
 ## Tests
 
-There is a suite of integration tests that test some assumptions about the environment like the type of mounted file system and the ledger that is being connected to. From the docker directory, run `./manage test`.
+There is a suite of integration tests that test some assumptions about the environment like the type of mounted file system and the ledger that is being connected to. For running these tests a local von-network needs to be running and the seed `00000000000000000000000000000000` needs to be registered with Endorser role on the von-network.
+From the docker directory, run `./manage test`.
 
 ## Additional Notes
 
