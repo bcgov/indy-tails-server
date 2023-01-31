@@ -95,8 +95,19 @@ This software is designed to support scaling to as many machines or processes as
 
 ## Tests
 
-There is a suite of integration tests that test some assumptions about the environment like the type of mounted file system and the ledger that is being connected to. For running these tests a local von-network needs to be running and the seed `00000000000000000000000000000000` needs to be registered with Endorser role on the von-network.
-From the docker directory, run `./manage test`.
+There is a suite of integration tests that test some assumptions about the environment like the type of mounted file system and the ledger that is being connected to. For running these tests a local von-network needs to be running, you can spin one up by 
+```
+git clone https://github.com/bcgov/von-network
+cd von-network
+./manage build
+./manage start
+```
+After the von-network is up, goto the tails-server docker directory, run the manage script as follows.
+```
+cd indy-tails-server/docker
+./manage test
+```
+This will perform a series of tests creating revocation registries with a local tails-server.
 
 ## Additional Notes
 
