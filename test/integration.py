@@ -56,8 +56,8 @@ def log_event(msg, panel=False, error=False):
     rprint(msg)
 
 
-def sign_request(req):
-    key = nacl.signing.SigningKey(ISSUER["seed"].encode("ascii"))
+def sign_request(req,seed):
+    key = nacl.signing.SigningKey(seed.encode("ascii"))
     signed = key.sign(req.signature_input)
     req.set_signature(signed.signature)
     return req
@@ -66,6 +66,22 @@ def sign_request(req):
 async def connect_to_ledger(genesis_txn_path):
     return await indy_vdr.open_pool(transactions_path=genesis_txn_path)
 
+# Register Issuer DID as Endorser using Steward
+async def register_issuer_did(pool):
+    issuer_wallet_handle = ISSUER["wallet"]
+
+    log_event('Generating and storing Steward DID and verkey...')
+    steward_seed = '000000000000000000000000Steward1'
+    did_json = json.dumps({'seed': steward_seed})
+    steward_did, steward_verkey = await indy.did.create_and_store_my_did(issuer_wallet_handle, did_json)
+
+    log_event('Generating and storing Issuer DID and verkey...')
+    did_json = json.dumps({'seed': ISSUER["seed"]})
+    issuer_did, issuer_verkey = await indy.did.create_and_store_my_did(issuer_wallet_handle, did_json)
+
+    log_event('Registering issuer DID...')
+    req = indy_vdr.ledger.build_nym_request(steward_did, issuer_did, verkey=issuer_verkey, role='ENDORSER')
+    resp = await pool.submit_request(sign_request(req, steward_seed))
 
 async def create_issuer_wallet():
     await indy.wallet.create_wallet(
@@ -81,7 +97,7 @@ async def publish_schema(pool):
         ISSUER["did"], SCHEMA["name"], SCHEMA["version"], SCHEMA["attributes"]
     )
     req = indy_vdr.ledger.build_schema_request(ISSUER["did"], ISSUER["schema"])
-    resp = await pool.submit_request(sign_request(req))
+    resp = await pool.submit_request(sign_request(req,ISSUER["seed"]))
     schema_dict = json.loads(ISSUER["schema"])
     schema_dict["seqNo"] = resp["txnMetadata"]["seqNo"]
     ISSUER["schema"] = json.dumps(schema_dict)
@@ -100,7 +116,7 @@ async def publish_cred_def(pool):
         CRED_DEF["config"],
     )
     req = indy_vdr.ledger.build_cred_def_request(ISSUER["did"], ISSUER["cred_def"])
-    ISSUER["cred_def"] = json.dumps(await pool.submit_request(sign_request(req)))
+    ISSUER["cred_def"] = json.dumps(await pool.submit_request(sign_request(req,ISSUER["seed"])))
 
 
 async def publish_revoc_reg(pool, tag):
@@ -124,7 +140,7 @@ async def publish_revoc_reg(pool, tag):
     req = indy_vdr.ledger.build_revoc_reg_def_request(
         ISSUER["did"], ISSUER["rev_reg_def"]
     )
-    return (await pool.submit_request(sign_request(req)))["txn"]["data"]
+    return (await pool.submit_request(sign_request(req,ISSUER["seed"])))["txn"]["data"]
 
 
 async def run_tests(genesis_url, tails_server_url):
@@ -142,6 +158,8 @@ async def run_tests(genesis_url, tails_server_url):
     pool = await connect_to_ledger(genesis_file.name)
     log_event("Creating wallet...")
     await create_issuer_wallet()
+    log_event("Registering DID to ledger...")
+    await register_issuer_did(pool)
     log_event("Publishing schema to ledger...")
     await publish_schema(pool)
     log_event("Publishing credential definition to ledger...")
