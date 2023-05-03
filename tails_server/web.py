@@ -32,9 +32,9 @@ async def match_files(request):
     return web.json_response(tails_files)
 
 
-@routes.get("/{revocation_reg_id}")
+@routes.get("/{tails_hash}")
 async def get_file(request):
-    revocation_reg_id = request.match_info["revocation_reg_id"]
+    tails_hash = request.match_info["tails_hash"]
     storage_path = request.app["settings"]["storage_path"]
 
     response = web.StreamResponse()
@@ -43,7 +43,7 @@ async def get_file(request):
 
     # Stream the response since the file could be big.
     try:
-        with open(os.path.join(storage_path, revocation_reg_id), "rb") as tails_file:
+        with open(os.path.join(storage_path, tails_hash), "rb") as tails_file:
             await response.prepare(request)
             while True:
                 chunk = tails_file.read(CHUNK_SIZE)
@@ -57,7 +57,7 @@ async def get_file(request):
     await response.write_eof()
 
 
-@routes.put("/{revocation_reg_id}")
+@routes.put("/{tails_hash}")
 async def put_file(request):
     storage_path = request.app["settings"]["storage_path"]
 
@@ -69,42 +69,14 @@ async def put_file(request):
 
     reader = await request.multipart()
 
-    # Get genesis transactions
-    field = await reader.next()
-    if field.name != "genesis":
-        LOGGER.debug(f"First field is not `genesis`, it's {field.name}")
-        raise web.HTTPBadRequest(
-            text="First field in multipart request must have name 'genesis'"
-        )
-    genesis_txn_bytes = await field.read()
+    tails_hash = request.match_info["tails_hash"]
 
-    # Lookup revocation registry and get tailsHash
-    revocation_reg_id = request.match_info["revocation_reg_id"]
-    try:
-        revocation_registry_definition = await get_rev_reg_def(
-            genesis_txn_bytes, revocation_reg_id, storage_path
-        )
-    except BadGenesisError:
-        LOGGER.debug(f"Received invalid genesis transactions")
-        raise web.HTTPBadRequest(text="Genesis transactions are not valid.")
-    except BadRevocationRegistryIdError:
-        LOGGER.debug(f"Revocation registry id is not valid: {revocation_reg_id}")
-        raise web.HTTPBadRequest(
-            text=f"Revocation registry ID is not valid: {revocation_reg_id}."
-        )
-
-    if not revocation_registry_definition:
-        LOGGER.debug(f"Revocation registry not found for id {revocation_reg_id}")
-        raise web.HTTPNotFound()
-
-    tails_hash = revocation_registry_definition["value"]["tailsHash"]
-
-    # Get second field
+    # Get first field
     field = await reader.next()
     if field.name != "tails":
-        LOGGER.debug(f"Second field is not `tails`, it's {field.name}")
+        LOGGER.debug(f"First field is not `tails`, it's {field.name}")
         raise web.HTTPBadRequest(
-            text="Second field in multipart request must have name 'tails'"
+            text="First field in multipart request must have name 'tails'"
         )
 
     # Process the file in chunks so we don't explode on large files.
@@ -123,7 +95,7 @@ async def put_file(request):
                 sha256.update(chunk)
                 tmp_file.write(chunk)
 
-            # Check file integrity against tailHash on ledger
+            # Check file integrity against tails_hash
             digest = sha256.digest()
             b58_digest = base58.b58encode(digest).decode("utf-8")
             if tails_hash != b58_digest:
@@ -132,7 +104,7 @@ async def put_file(request):
             # File integrity is good so write file to permanent location.
             tmp_file.seek(0)
             with open(
-                os.path.join(storage_path, revocation_reg_id), "xb"
+                os.path.join(storage_path, tails_hash), "xb"
             ) as tails_file:
                 while True:
                     chunk = tmp_file.read(CHUNK_SIZE)
