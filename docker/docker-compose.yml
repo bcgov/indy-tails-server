@@ -1,12 +1,16 @@
 version: "3"
 services:
   ngrok-tails-server:
-    image: wernight/ngrok
+    image: ngrok/ngrok
     networks:
       - tails-server
     ports:
       - 4044:4040
-    command: ngrok http tails-server:6543 --log stdout
+    command: start --all
+    environment:
+      - NGROK_CONFIG=/etc/ngrok.yml
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
   tails-server:
     build:
       context: ..

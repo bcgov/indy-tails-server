@@ -1,0 +1,8 @@
+log: stdout
+tunnels:
+  tails-server:
+    addr: tails-server:6543
+    inspect: false
+    proto: http
+version: 2
+web_addr: 0.0.0.0:4040
