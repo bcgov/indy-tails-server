@@ -187,11 +187,6 @@ async def put_file_by_hash(request):
 
     # Get first field
     field = await reader.next()
-    if field.name != "tails":
-        LOGGER.debug(f"First field is not `tails`, it's {field.name}")
-        raise web.HTTPBadRequest(
-            text="First field in multipart request must have name 'tails'"
-        )
 
     # Process the file in chunks so we don't explode on large files.
     # Construct hash and write file in chunks.
@@ -214,6 +209,18 @@ async def put_file_by_hash(request):
             b58_digest = base58.b58encode(digest).decode("utf-8")
             if tails_hash != b58_digest:
                 raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
+
+            # Basic validation of tails file:
+            # Tails file must start with "00 02"
+            tmp_file.seek(0)
+            if tmp_file.read(2) != b'\x00\x02':
+                raise web.HTTPBadRequest(text='Tails file must start with "00 02".')
+
+            # Since each tail is 128 bytes, tails file size must be a multiple of 128
+            # plus the 2-byte version tag
+            tmp_file.seek(0, 2)
+            if (tmp_file.tell() - 2) % 128 != 0:
+                raise web.HTTPBadRequest(text="Tails file is not the correct size.")
 
             # File integrity is good so write file to permanent location.
             tmp_file.seek(0)
