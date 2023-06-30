@@ -8,6 +8,7 @@ import hashlib
 import base58
 from random import randrange
 import aiofiles
+import io
 
 from tempfile import NamedTemporaryFile
 
@@ -191,6 +192,9 @@ async def run_tests(genesis_url, tails_server_url):
     pool.close()
 
     await test_upload_bad_tails_file(genesis_file.name, tails_server_url, revo_reg_def)
+    await test_put_file_by_hash(tails_server_url)
+    await test_put_file_by_hash_x_version_tag(tails_server_url)
+    await test_put_file_by_hash_x_file_size(tails_server_url)
 
     pool = await connect_to_ledger(genesis_file.name)
     log_event("Publishing revocation registry to ledger...")
@@ -415,6 +419,78 @@ async def test_race_download(genesis_path, tails_server_url, revo_reg_def):
     assert resp1.status == 200
 
     log_event("Passed")
+
+
+async def test_put_file_by_hash(tails_server_url):
+    file = open("test_tails.bin", "wb+")
+    file = io.BytesIO(b'\x00\x02')
+
+    sha256 = hashlib.sha256()
+    sha256.update(file.read())
+    digest = sha256.digest()
+    tails_hash = base58.b58encode(digest).decode("utf-8")
+
+    with aiohttp.MultipartWriter('mixed') as mpwriter:
+        file.seek(0)
+        mpwriter.append(file.read())
+        session = aiohttp.ClientSession()
+        async with session.put(
+            f"{tails_server_url}/hash/{tails_hash}",
+            data=mpwriter,
+        ) as resp:
+            assert resp.status == 200
+
+    file.close()
+    os.remove("test_tails.bin")
+
+
+async def test_put_file_by_hash_x_version_tag(tails_server_url):
+    file = open("test_tails_x_version_tag.bin", "wb+")
+    file = io.BytesIO(b'\x00\x03')
+
+    sha256 = hashlib.sha256()
+    sha256.update(file.read())
+    digest = sha256.digest()
+    tails_hash = base58.b58encode(digest).decode("utf-8")
+
+    with aiohttp.MultipartWriter('mixed') as mpwriter:
+        file.seek(0)
+        mpwriter.append(file.read())
+        session = aiohttp.ClientSession()
+        async with session.put(
+            f"{tails_server_url}/hash/{tails_hash}",
+            data=mpwriter,
+        ) as resp:
+            assert resp.status == 400
+            assert await resp.text() == 'Tails file must start with "00 02".'
+
+    file.close()
+    os.remove("test_tails_x_version_tag.bin")
+
+
+async def test_put_file_by_hash_x_file_size(tails_server_url):
+    file = open("test_tails_x_file_size.bin", "wb+")
+    file = io.BytesIO(b'\x00\x02\x01')
+
+    sha256 = hashlib.sha256()
+    sha256.update(file.read())
+    digest = sha256.digest()
+    tails_hash = base58.b58encode(digest).decode("utf-8")
+
+    with aiohttp.MultipartWriter('mixed') as mpwriter:
+        file.seek(0)
+        mpwriter.append(file.read())
+        session = aiohttp.ClientSession()
+        async with session.put(
+            f"{tails_server_url}/hash/{tails_hash}",
+            data=mpwriter,
+        ) as resp:
+            assert resp.status == 400
+            assert await resp.text() == "Tails file is not the correct size."
+
+    file.close()
+    os.remove("test_tails_x_file_size.bin")
+
 
 
 PARSER = argparse.ArgumentParser(description="Runs integration tests.")
