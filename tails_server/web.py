@@ -14,6 +14,7 @@ from .ledger import (
     BadGenesisError,
     BadRevocationRegistryIdError,
 )
+from .health import Check, EnvDump
 
 LOGGER = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ async def put_file(request):
             text="Second field in multipart request must have name 'tails'"
         )
 
-    # Process the file in chunks so we don't explode on large files.
+    # Process the file in chunks, so we don't explode on large files.
     # Construct hash and write file in chunks.
     sha256 = hashlib.sha256()
     try:
@@ -146,12 +147,31 @@ async def put_file(request):
     return web.Response(text=tails_hash)
 
 
+def custom_check():  # An example of custom check to be enacted as part of the "/health/check"
+    if 1 + 1 == 2:
+        return True, "It works!"
+    else:
+        return False, "It doesn't work!!! :("
+
+
 def start(settings):
     app = web.Application()
     app["settings"] = settings
 
     # Add routes
     app.add_routes(routes)
+
+    # To avoid putting too much strain on backend services, health check results can be cached in process memory.
+    # By default, they are set to None, so we need to set them to a specific time intervals for the cache to function
+    check = Check(success_ttl=30, failed_ttl=10)
+    # EnvDump at minimum will return storage statistics, while OS/Python/process can be toggled on/off
+    env_dump = EnvDump(include_os=True, include_python=True, include_process=True)
+
+    app.router.add_get("/health/check", check)
+    app.router.add_get("/health/env", env_dump)
+
+    # To enable extensibility, we can use `add_check` to inject our own custom check method (example above)
+    check.add_check(custom_check)
 
     web.run_app(
         app,
