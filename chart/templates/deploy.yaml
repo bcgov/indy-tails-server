@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tails-server.deploy-name" . }}
+  labels:
+    {{- include "tails-server.labelsWithName" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "tails-server.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      name: {{ include "tails-server.deploy-name" . }}
+      labels:
+        {{- include "tails-server.labelsWithName" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "tails-server.deploy-name" . }}
+          command:
+            - bash
+            - -c
+            - $(echo tails-server
+              --host 0.0.0.0
+              --port {{ .Values.service.port }}
+              --storage-path {{ .Values.storagePath }}
+              --log-level {{ .Values.logLevel }});
+          image: {{ include "tails-server.image" . }}
+          ports:
+            - containerPort: {{ int .Values.service.port }}
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+          volumeMounts:
+            - name: "{{ include "tails-server.deploy-name" . }}"
+              mountPath: "{{ .Values.storagePath }}"
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: "{{ include "tails-server.deploy-name" . }}"
+          persistentVolumeClaim:
+            claimName: "{{ include "tails-server.deploy-name" . }}"

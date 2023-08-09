@@ -1,0 +1,57 @@
+---
+
+app:
+  env: 'dev'
+  group: 'tails-server'
+  name: 'TailsServer'
+  role: 'tails'
+
+deploy:
+  image:
+    name: 'bobgopher/indy-tails-server'
+    tag: 'latest'
+  name:
+    prefix: 'tails-server'
+    suffix: ''
+  replicas:
+    min: '2'
+    max: '4'
+
+ingress:
+  annotations: {}
+  className: ""
+  ## enable creation of the Ingress resource by setting
+  ## ingress.hosts to a non-empty list of public (host) URLs
+  hosts: []
+  #  - host: chart-example.local
+  #    paths:
+  #      - path: /
+  #        pathType: ImplementationSpecific
+  namespace: 'istio-ingress'
+  route:
+    timeout: '120s'
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+logLevel: 'WARNING'
+
+persistentVolume:
+  accessMode: 'ReadWriteOnce'
+  size: '10Gi'
+
+resources:
+  limits:
+    cpu: '1000m'
+    memory: '1000Mi'
+  requests:
+    cpu: '10m'
+    memory: '10Mi'
+
+service:
+  nameOverride: ''
+  port: '6543'
+
+storagePath: '/tmp/tails-files'
+

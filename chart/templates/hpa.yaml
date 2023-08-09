@@ -1,0 +1,13 @@
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "tails-server.deploy-name" . }}
+  labels:
+    {{- include "tails-server.labelsWithName" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: {{ include "tails-server.deploy-name" . }}
+  minReplicas: {{ int .Values.deploy.replicas.min }}
+  maxReplicas: {{ int .Values.deploy.replicas.max }}
