@@ -42,13 +42,16 @@ too large, the holders will have challenges in downloading and processing the
 tails file.
 
 | Revocation Registry Size | Tail File Size | Proof Generation Time |
-| :---: | :---: | :---: |
-| 3000 | 768KB | ~4sec |
-| 10000 | 2.6MB | ~5sec |
-| 32768 | 8.4MB | ~7sec |
+| :----------------------: | :------------: | :-------------------: |
+|           3000           |     768KB      |         ~4sec         |
+|          10000           |     2.6MB      |         ~5sec         |
+|          32768           |     8.4MB      |         ~7sec         |
 
 - Tests of Proof Generation used the Lissi-Wallet on a iPhone 12Pro
 - 32768 is the Revocation Registry max-size-value set in Aries Cloud Agent Python.
+
+Recent performance improvements in Tails File handling both in I/O and cryptographic
+processing may have resulted in decreases in proof generation times.
 
 ## Running in Docker (easy mode)
 
@@ -79,15 +82,38 @@ This server has two functions:
 - Uploading a tails file
 - Downloading a tails file
 
+For each of those operations, there are two endpoints, one based on the
+Revocation Registry ID, and the other based on the hash of the tails file to be
+load/retrieved.
+
 ### Uploading
 
-To upload a tails file, make a `PUT` request to `/{revoc_reg_id}` as a multipart file upload with 2 fields. The **first** field _must_ be named `genesis` and the **second** field _must_ be named `tails`. `genesis` should be the genesis transactions file and `tails` should be the tails file. The server supports chunked encoding for streaming very large tails files.
+To upload a tails file using the Revocation Registry ID, make a `PUT` request to
+`/{revoc_reg_id}` as a multipart file upload with 2 fields. The **first** field
+_must_ be named `genesis` and the **second** field _must_ be named `tails`.
+`genesis` should be the genesis transactions file and `tails` should be the
+tails file. The server supports chunked encoding for streaming very large tails
+files. The server will lookup the relevant revocation registry definition and
+check the integrity of the file against `fileHash` on the ledger. If it's good,
+it will store the file. Otherwise it will respond with response code `400`. If
+`revoc_reg_id` does not exist on the ledger, the server will respond with
+response code `404`. If the file already exists on the server, it will respond
+with response code `409`.
 
-The server will lookup the relevant revocation registry definition and check the integrity of the file against `fileHash` on the ledger. If it's good, it will store the file. Otherwise it will respond with response code `400`. If `revoc_reg_id` does not exist on the ledger, the server will respond with response code `404`. If the file already exists on the server, it will respond with response code `409`.
+To upload a tails file using the hash endpoint, use the `PUT /hash/{tails-hash}`
+endpoint to upload the file, validate the hash against the uploaded file, and
+ensure the tails file "looks" like a tails file by carrying out several checks
+of the contents.
 
 ### Downloading
 
-A simple `GET` request will download a tails file. The path is `/{revoc_reg_id}` where `revoc_reg_id` is a valid id. If it doesn't exist, the server will respond with response code `404`.
+For downloading a file using the Revocation Registry ID, execute a `GET` request
+with the path `/{revoc_reg_id}` where `revoc_reg_id` is a valid id. If it
+doesn't exist, the server will respond with response code `404`.
+
+For downloading a file using the tails file hash, execute a `GET
+/hash/{tails-hash}`. If a file with that hash doesn't exist, the server will
+respond with response code `404`.
 
 ## Guarantees
 
@@ -96,20 +122,40 @@ This software is designed to support scaling to as many machines or processes as
 ## Tests
 
 There is a suite of integration tests that test some assumptions about the environment like the type of mounted file system and the ledger that is being connected to. For running these tests a local von-network needs to be running, you can spin one up by 
+
 ```
 git clone https://github.com/bcgov/von-network
 cd von-network
 ./manage build
 ./manage start
 ```
+
 After the von-network is up, goto the tails-server docker directory, run the manage script as follows.
+
 ```
 cd indy-tails-server/docker
 ./manage test
 ```
-This will perform a series of tests creating revocation registries with a local tails-server.
+
+This will perform a series of tests creating revocation registries with a local tails-server. Some notes:
+
+- The tests can only be run once per run of VON Network (error `UnauthorizedClientRequest`). To rerun, bring down von-network (`./manage down; ./manage start` in the von-network repository clone) and rerun the tests.
+- Wait a bit after starting von-network (15-20 seconds) before running the indy-tails-server tests, as you will get an error (`Server disconnected...`) if you start too quickly. If you get that error, try again and it should work.
+
+If you want to run a local copy for testing with other deployments, here are some things you can try:
+
+- After starting your docker Tails File instance, run the [ACA-Py Alice-Faber
+  Demo with Revocation](https://aca-py.org/main/demo/#revocation).
+- After starting your docker Tails File instance, run the [Aries Agent Test
+Harness](https://github.com/hyperledger/aries-agent-test-harness) (AATH). For
+example, after cloning the AATH repo, run the command `./manage runset acapy -b`
+to build and run the standard set of tests with ACA-Py. AATH detects that a
+tails file is already running locally, and so will use that instance.
 
 ## Additional Notes
 
-Due to how revocation works in Indy, there is the expectation/requirement that the tails server public URL will be stable over time.
-Failing to satisfy this requirement will cause failures when issuing and/or verifying credentials for which the credential definition was created/registered on an "old" tails server url.
+Due to how revocation works in Hyperledger Indy, there is the expectation/requirement that
+the tails server public URL will be stable over time. Failing to satisfy this
+requirement will cause failures when issuing and/or verifying credentials for
+which the credential definition was created/registered on an "old" tails server
+url.

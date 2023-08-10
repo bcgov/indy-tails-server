@@ -1,4 +1,16 @@
 #!/bin/bash
+
+# ========================================================================================================
+# Check Docker Compose
+# --------------------------------------------------------------------------------------------------------
+
+# Default to deprecated V1 'docker-compose'.
+dockerCompose="docker-compose --log-level ERROR"
+
+# Prefer 'docker compose' V2 if available
+if [[ $(docker compose version 2> /dev/null) == 'Docker Compose'* ]]; then
+  dockerCompose="docker --log-level error compose"
+fi
 export MSYS_NO_PATHCONV=1
 # getDockerHost; for details refer to https://github.com/bcgov/DITP-DevOps/tree/main/code/snippets#getdockerhost
 . /dev/stdin <<<"$(cat <(curl -s --raw https://raw.githubusercontent.com/bcgov/DITP-DevOps/main/code/snippets/getDockerHost))" 
@@ -46,7 +58,7 @@ exportEnvironment() {
   export GENESIS_URL=${GENESIS_URL:-http://$DOCKERHOST:9000/genesis}
   export STORAGE_PATH=${STORAGE_PATH:-/tmp/tails-files}
   export LOG_LEVEL=${LOG_LEVEL:-INFO}
-  export TAILS_SERVER_URL=${TAILS_SERVER_URL:-http://host.docker.internal:6543}
+  export TAILS_SERVER_URL=${TAILS_SERVER_URL:-http://$DOCKERHOST:6543}
 }
 
 function logs() {
@@ -69,8 +81,7 @@ function logs() {
     log_args=()
     (( no_tail != 1 )) && log_args+=( '-f' )
     if [ ! -z "${TAIL_LOGS}" ] || [ ! -z "${_force}" ]; then
-      docker-compose \
-        --log-level ERROR logs \
+      ${dockerCompose} logs \
          "${log_args[@]}" "$@"
     fi
   )
@@ -84,28 +95,28 @@ shift || COMMAND=usage
 
 case "${COMMAND}" in
 build)
-  docker-compose build $@
+  ${dockerCompose} build $@
   ;;
 start|up)
   exportEnvironment "$@"
-  docker-compose up -d ngrok-tails-server tails-server
+  ${dockerCompose} up -d ngrok-tails-server tails-server
   logs
   echo "Run './manage logs' for logs" 
   ;;
 test)
   exportEnvironment "$@"
-  docker-compose up -d ngrok-tails-server tails-server
-  docker-compose run tester --genesis-url $GENESIS_URL --tails-server-url $TAILS_SERVER_URL
-  # docker-compose down
+  ${dockerCompose} up -d ngrok-tails-server tails-server
+  ${dockerCompose} run tester --genesis-url $GENESIS_URL --tails-server-url $TAILS_SERVER_URL
+  # ${dockerCompose} down
   ;;
 logs)
-  docker-compose logs -f
+  ${dockerCompose} logs -f
   ;;
 stop)
-  docker-compose stop
+  ${dockerCompose} stop
   ;;
 down|rm)
-  docker-compose down
+  ${dockerCompose} down
   ;;
 *)
   usage
