@@ -56,6 +56,30 @@ async def get_file(request):
 
     await response.write_eof()
 
+@routes.get("/hash/{tails_hash}")
+async def get_file_by_hash(request):
+    tails_hash = request.match_info["tails_hash"]
+    storage_path = request.app["settings"]["storage_path"]
+
+    response = web.StreamResponse()
+    response.enable_compression()
+    response.enable_chunked_encoding()
+
+    # Stream the response since the file could be big.
+    try:
+        with open(os.path.join(storage_path, tails_hash), "rb") as tails_file:
+            await response.prepare(request)
+            while True:
+                chunk = tails_file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                await response.write(chunk)
+
+    except FileNotFoundError:
+        raise web.HTTPNotFound()
+
+    await response.write_eof()
+
 
 @routes.put("/{revocation_reg_id}")
 async def put_file(request):
@@ -133,6 +157,75 @@ async def put_file(request):
             tmp_file.seek(0)
             with open(
                 os.path.join(storage_path, revocation_reg_id), "xb"
+            ) as tails_file:
+                while True:
+                    chunk = tmp_file.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    tails_file.write(chunk)
+
+    except FileExistsError:
+        raise web.HTTPConflict(text="This tails file already exists.")
+
+    return web.Response(text=tails_hash)
+
+
+
+@routes.put("/hash/{tails_hash}")
+async def put_file_by_hash(request):
+    storage_path = request.app["settings"]["storage_path"]
+
+    # Check content-type for multipart
+    content_type_header = request.headers.get("Content-Type")
+    if "multipart" not in content_type_header:
+        LOGGER.debug(f"Bad Content-Type header: {content_type_header}")
+        raise web.HTTPBadRequest(text="Expected mutlipart content type")
+
+    reader = await request.multipart()
+
+    tails_hash = request.match_info["tails_hash"]
+
+    # Get first field
+    field = await reader.next()
+
+    # Process the file in chunks so we don't explode on large files.
+    # Construct hash and write file in chunks.
+    sha256 = hashlib.sha256()
+    try:
+        # This should be atomic across networked filesystems:
+        # https://linux.die.net/man/3/open
+        # http://nfs.sourceforge.net/ (D10)
+        # 'x' mode == O_EXCL | O_CREAT
+        with NamedTemporaryFile("w+b") as tmp_file:
+            while True:
+                chunk = await field.read_chunk(CHUNK_SIZE)
+                if not chunk:
+                    break
+                sha256.update(chunk)
+                tmp_file.write(chunk)
+
+            # Check file integrity against tails_hash
+            digest = sha256.digest()
+            b58_digest = base58.b58encode(digest).decode("utf-8")
+            if tails_hash != b58_digest:
+                raise web.HTTPBadRequest(text="tailsHash does not match hash of file.")
+
+            # Basic validation of tails file:
+            # Tails file must start with "00 02"
+            tmp_file.seek(0)
+            if tmp_file.read(2) != b'\x00\x02':
+                raise web.HTTPBadRequest(text='Tails file must start with "00 02".')
+
+            # Since each tail is 128 bytes, tails file size must be a multiple of 128
+            # plus the 2-byte version tag
+            tmp_file.seek(0, 2)
+            if (tmp_file.tell() - 2) % 128 != 0:
+                raise web.HTTPBadRequest(text="Tails file is not the correct size.")
+
+            # File integrity is good so write file to permanent location.
+            tmp_file.seek(0)
+            with open(
+                os.path.join(storage_path, tails_hash), "xb"
             ) as tails_file:
                 while True:
                     chunk = tmp_file.read(CHUNK_SIZE)
