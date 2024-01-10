@@ -59,6 +59,13 @@ processing may have resulted in decreases in proof generation times.
 
 From the docker directory in this repo, run `./manage start`.
 
+### Ngrok
+The docker environment requires Ngrok to run locally. After [registering an Ngrok token](https://dashboard.ngrok.com/get-started/your-authtoken) you can create a `.env` file in the docker directory and supply your token with
+
+```
+NGROK_AUTHTOKEN=<your token here>
+```
+
 ## Running on Bare Metal
 
 Install the python package `tails-server` from this directory. This may be available on [PyPI](https://pypi.org/) some day.
