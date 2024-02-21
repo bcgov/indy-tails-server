@@ -54,14 +54,6 @@ jobs:
           ./manage build
           ./manage start
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /var/lib/docker
-          key: ${{ runner.os }}-docker-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-docker-
-
       - name: Build and run tests
         run: |
           cd indy-tails-server/docker
