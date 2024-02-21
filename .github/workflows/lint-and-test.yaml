@@ -1,0 +1,86 @@
+name: Lint and test
+
+on:
+  # Manual dispatch option:
+  workflow_dispatch:
+  # Trigger the workflow only for pull requests for the main branch
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  style:
+    name: Python linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            isort~=5.13.2 \
+            black~=24.2.0
+      - name: Check import style with isort
+        run: |
+          isort . --check --profile black --diff
+      - name: Check code style with Black
+        run: |
+          black . --check --diff
+
+  test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: "indy-tails-server" # Specify a path to clone the main repo into a specific directory
+
+      # Clone von-network repository
+      - name: Checkout von-network repository
+        uses: actions/checkout@v4
+        with:
+          repository: "bcgov/von-network"
+          path: "von-network" # Clone into a separate directory
+
+      # Build and start von-network
+      - name: Build and start von-network
+        run: |
+          cd von-network
+          chmod +x manage
+          ./manage build
+          ./manage start
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /var/lib/docker
+          key: ${{ runner.os }}-docker-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true # Ignore the failure of a step and avoid terminating the job.
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and run tests
+        run: |
+          cd indy-tails-server/docker
+          chmod +x ./manage
+          ./manage build
+          ./manage test
+
+      - name: Stop von-network
+        run: |
+          cd von-network
+          ./manage stop
+
+      - name: Stop indy-tails-server
+        run: |
+          cd indy-tails-server/docker
+          ./manage stop
