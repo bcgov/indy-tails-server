@@ -57,7 +57,7 @@ def log_event(msg, panel=False, error=False):
     rprint(msg)
 
 
-def sign_request(req,seed):
+def sign_request(req, seed):
     key = nacl.signing.SigningKey(seed.encode("ascii"))
     signed = key.sign(req.signature_input)
     req.set_signature(signed.signature)
@@ -67,22 +67,30 @@ def sign_request(req,seed):
 async def connect_to_ledger(genesis_txn_path):
     return await indy_vdr.open_pool(transactions_path=genesis_txn_path)
 
+
 # Register Issuer DID as Endorser using Steward
 async def register_issuer_did(pool):
     issuer_wallet_handle = ISSUER["wallet"]
 
-    log_event('Generating and storing Steward DID and verkey...')
-    steward_seed = '000000000000000000000000Steward1'
-    did_json = json.dumps({'seed': steward_seed})
-    steward_did, steward_verkey = await indy.did.create_and_store_my_did(issuer_wallet_handle, did_json)
+    log_event("Generating and storing Steward DID and verkey...")
+    steward_seed = "000000000000000000000000Steward1"
+    did_json = json.dumps({"seed": steward_seed})
+    steward_did, steward_verkey = await indy.did.create_and_store_my_did(
+        issuer_wallet_handle, did_json
+    )
 
-    log_event('Generating and storing Issuer DID and verkey...')
-    did_json = json.dumps({'seed': ISSUER["seed"]})
-    issuer_did, issuer_verkey = await indy.did.create_and_store_my_did(issuer_wallet_handle, did_json)
+    log_event("Generating and storing Issuer DID and verkey...")
+    did_json = json.dumps({"seed": ISSUER["seed"]})
+    issuer_did, issuer_verkey = await indy.did.create_and_store_my_did(
+        issuer_wallet_handle, did_json
+    )
 
-    log_event('Registering issuer DID...')
-    req = indy_vdr.ledger.build_nym_request(steward_did, issuer_did, verkey=issuer_verkey, role='ENDORSER')
+    log_event("Registering issuer DID...")
+    req = indy_vdr.ledger.build_nym_request(
+        steward_did, issuer_did, verkey=issuer_verkey, role="ENDORSER"
+    )
     resp = await pool.submit_request(sign_request(req, steward_seed))
+
 
 async def create_issuer_wallet():
     await indy.wallet.create_wallet(
@@ -98,7 +106,7 @@ async def publish_schema(pool):
         ISSUER["did"], SCHEMA["name"], SCHEMA["version"], SCHEMA["attributes"]
     )
     req = indy_vdr.ledger.build_schema_request(ISSUER["did"], ISSUER["schema"])
-    resp = await pool.submit_request(sign_request(req,ISSUER["seed"]))
+    resp = await pool.submit_request(sign_request(req, ISSUER["seed"]))
     schema_dict = json.loads(ISSUER["schema"])
     schema_dict["seqNo"] = resp["txnMetadata"]["seqNo"]
     ISSUER["schema"] = json.dumps(schema_dict)
@@ -117,7 +125,9 @@ async def publish_cred_def(pool):
         CRED_DEF["config"],
     )
     req = indy_vdr.ledger.build_cred_def_request(ISSUER["did"], ISSUER["cred_def"])
-    ISSUER["cred_def"] = json.dumps(await pool.submit_request(sign_request(req,ISSUER["seed"])))
+    ISSUER["cred_def"] = json.dumps(
+        await pool.submit_request(sign_request(req, ISSUER["seed"]))
+    )
 
 
 async def publish_revoc_reg(pool, tag):
@@ -141,7 +151,7 @@ async def publish_revoc_reg(pool, tag):
     req = indy_vdr.ledger.build_revoc_reg_def_request(
         ISSUER["did"], ISSUER["rev_reg_def"]
     )
-    return (await pool.submit_request(sign_request(req,ISSUER["seed"])))["txn"]["data"]
+    return (await pool.submit_request(sign_request(req, ISSUER["seed"])))["txn"]["data"]
 
 
 async def run_tests(genesis_url, tails_server_url):
@@ -423,14 +433,14 @@ async def test_race_download(genesis_path, tails_server_url, revo_reg_def):
 
 async def test_put_file_by_hash(tails_server_url):
     file = open("test_tails.bin", "wb+")
-    file = io.BytesIO(b'\x00\x02')
+    file = io.BytesIO(b"\x00\x02")
 
     sha256 = hashlib.sha256()
     sha256.update(file.read())
     digest = sha256.digest()
     tails_hash = base58.b58encode(digest).decode("utf-8")
 
-    with aiohttp.MultipartWriter('mixed') as mpwriter:
+    with aiohttp.MultipartWriter("mixed") as mpwriter:
         file.seek(0)
         mpwriter.append(file.read())
         session = aiohttp.ClientSession()
@@ -446,14 +456,14 @@ async def test_put_file_by_hash(tails_server_url):
 
 async def test_put_file_by_hash_x_version_tag(tails_server_url):
     file = open("test_tails_x_version_tag.bin", "wb+")
-    file = io.BytesIO(b'\x00\x03')
+    file = io.BytesIO(b"\x00\x03")
 
     sha256 = hashlib.sha256()
     sha256.update(file.read())
     digest = sha256.digest()
     tails_hash = base58.b58encode(digest).decode("utf-8")
 
-    with aiohttp.MultipartWriter('mixed') as mpwriter:
+    with aiohttp.MultipartWriter("mixed") as mpwriter:
         file.seek(0)
         mpwriter.append(file.read())
         session = aiohttp.ClientSession()
@@ -470,14 +480,14 @@ async def test_put_file_by_hash_x_version_tag(tails_server_url):
 
 async def test_put_file_by_hash_x_file_size(tails_server_url):
     file = open("test_tails_x_file_size.bin", "wb+")
-    file = io.BytesIO(b'\x00\x02\x01')
+    file = io.BytesIO(b"\x00\x02\x01")
 
     sha256 = hashlib.sha256()
     sha256.update(file.read())
     digest = sha256.digest()
     tails_hash = base58.b58encode(digest).decode("utf-8")
 
-    with aiohttp.MultipartWriter('mixed') as mpwriter:
+    with aiohttp.MultipartWriter("mixed") as mpwriter:
         file.seek(0)
         mpwriter.append(file.read())
         session = aiohttp.ClientSession()
@@ -490,7 +500,6 @@ async def test_put_file_by_hash_x_file_size(tails_server_url):
 
     file.close()
     os.remove("test_tails_x_file_size.bin")
-
 
 
 PARSER = argparse.ArgumentParser(description="Runs integration tests.")

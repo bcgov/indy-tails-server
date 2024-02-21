@@ -56,6 +56,7 @@ async def get_file(request):
 
     await response.write_eof()
 
+
 @routes.get("/hash/{tails_hash}")
 async def get_file_by_hash(request):
     tails_hash = request.match_info["tails_hash"]
@@ -170,7 +171,6 @@ async def put_file(request):
     return web.Response(text=tails_hash)
 
 
-
 @routes.put("/hash/{tails_hash}")
 async def put_file_by_hash(request):
     storage_path = request.app["settings"]["storage_path"]
@@ -213,7 +213,7 @@ async def put_file_by_hash(request):
             # Basic validation of tails file:
             # Tails file must start with "00 02"
             tmp_file.seek(0)
-            if tmp_file.read(2) != b'\x00\x02':
+            if tmp_file.read(2) != b"\x00\x02":
                 raise web.HTTPBadRequest(text='Tails file must start with "00 02".')
 
             # Since each tail is 128 bytes, tails file size must be a multiple of 128
@@ -224,9 +224,7 @@ async def put_file_by_hash(request):
 
             # File integrity is good so write file to permanent location.
             tmp_file.seek(0)
-            with open(
-                os.path.join(storage_path, tails_hash), "xb"
-            ) as tails_file:
+            with open(os.path.join(storage_path, tails_hash), "xb") as tails_file:
                 while True:
                     chunk = tmp_file.read(CHUNK_SIZE)
                     if not chunk:
