@@ -62,12 +62,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docker-
 
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true # Ignore the failure of a step and avoid terminating the job.
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build and run tests
         run: |
           cd indy-tails-server/docker
