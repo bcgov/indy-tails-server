@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import base64
 import hashlib
 import io
 import json
@@ -16,7 +15,6 @@ import indy_vdr
 import nacl.signing
 from rich import print as rprint
 from rich.panel import Panel
-from rich.traceback import install as rich_traceback_install
 
 ISSUER = {
     "seed": "00000000000000000000000000000000",
