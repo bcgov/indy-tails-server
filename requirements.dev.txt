@@ -3,3 +3,6 @@ pynacl
 aiofiles
 
 python3_indy
+
+isort~=5.13.2
+black~=24.2.0
