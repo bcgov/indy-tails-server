@@ -2,7 +2,6 @@
 
 import argparse
 
-
 PARSER = argparse.ArgumentParser(description="Runs the server.")
 
 

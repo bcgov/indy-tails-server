@@ -1,6 +1,6 @@
-from os import path
 import logging
 from logging.config import fileConfig
+from os import path
 
 DEFAULT_LOGGING_CONFIG_PATH = path.join(
     path.dirname(path.abspath(__file__)), "config", "default_logging_config.ini"

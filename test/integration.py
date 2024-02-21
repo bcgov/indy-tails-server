@@ -1,25 +1,22 @@
 import argparse
 import asyncio
-import aiohttp
 import base64
+import hashlib
+import io
 import json
 import os
-import hashlib
-import base58
 from random import randrange
-import aiofiles
-import io
-
 from tempfile import NamedTemporaryFile
 
-from rich.traceback import install as rich_traceback_install
-from rich import print as rprint
-from rich.panel import Panel
-
+import aiofiles
+import aiohttp
+import base58
 import indy
 import indy_vdr
 import nacl.signing
-
+from rich import print as rprint
+from rich.panel import Panel
+from rich.traceback import install as rich_traceback_install
 
 ISSUER = {
     "seed": "00000000000000000000000000000000",

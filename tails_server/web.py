@@ -1,19 +1,14 @@
-import logging
 import hashlib
-import base58
+import logging
 import os
-
 from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
+import base58
 from aiohttp import web
 
-from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
-from .ledger import (
-    get_rev_reg_def,
-    BadGenesisError,
-    BadRevocationRegistryIdError,
-)
+from .config.defaults import CHUNK_SIZE, DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
+from .ledger import BadGenesisError, BadRevocationRegistryIdError, get_rev_reg_def
 
 LOGGER = logging.getLogger(__name__)
 
