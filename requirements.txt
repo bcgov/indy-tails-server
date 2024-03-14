@@ -3,7 +3,7 @@ base58~=2.1.1
 
 # temporary to fix transitive dependency issues
 multidict<5.0.0
-yarl==1.6.0
+yarl==1.9.4
 
 # indy_vdr
 # Error loading library: indy_vdr specified version because it occurs when installing as pip3 install indy-vdr.
