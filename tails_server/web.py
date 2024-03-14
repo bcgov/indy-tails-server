@@ -1,19 +1,14 @@
-import logging
 import hashlib
-import base58
+import logging
 import os
-
 from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
+import base58
 from aiohttp import web
 
-from .config.defaults import DEFAULT_WEB_HOST, DEFAULT_WEB_PORT, CHUNK_SIZE
-from .ledger import (
-    get_rev_reg_def,
-    BadGenesisError,
-    BadRevocationRegistryIdError,
-)
+from .config.defaults import CHUNK_SIZE, DEFAULT_WEB_HOST, DEFAULT_WEB_PORT
+from .ledger import BadGenesisError, BadRevocationRegistryIdError, get_rev_reg_def
 
 LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +50,7 @@ async def get_file(request):
         raise web.HTTPNotFound()
 
     await response.write_eof()
+
 
 @routes.get("/hash/{tails_hash}")
 async def get_file_by_hash(request):
@@ -170,7 +166,6 @@ async def put_file(request):
     return web.Response(text=tails_hash)
 
 
-
 @routes.put("/hash/{tails_hash}")
 async def put_file_by_hash(request):
     storage_path = request.app["settings"]["storage_path"]
@@ -213,7 +208,7 @@ async def put_file_by_hash(request):
             # Basic validation of tails file:
             # Tails file must start with "00 02"
             tmp_file.seek(0)
-            if tmp_file.read(2) != b'\x00\x02':
+            if tmp_file.read(2) != b"\x00\x02":
                 raise web.HTTPBadRequest(text='Tails file must start with "00 02".')
 
             # Since each tail is 128 bytes, tails file size must be a multiple of 128
@@ -224,9 +219,7 @@ async def put_file_by_hash(request):
 
             # File integrity is good so write file to permanent location.
             tmp_file.seek(0)
-            with open(
-                os.path.join(storage_path, tails_hash), "xb"
-            ) as tails_file:
+            with open(os.path.join(storage_path, tails_hash), "xb") as tails_file:
                 while True:
                     chunk = tmp_file.read(CHUNK_SIZE)
                     if not chunk:

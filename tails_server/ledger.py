@@ -1,8 +1,6 @@
 import logging
 from tempfile import NamedTemporaryFile
-import base64
 
-from binascii import Error as BinAsciiError
 import indy_vdr
 
 logger = logging.getLogger(__name__)

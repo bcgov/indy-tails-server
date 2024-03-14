@@ -2,7 +2,8 @@
 
 import os
 import runpy
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 PACKAGE_NAME = "tails_server"
 version_meta = runpy.run_path("./{}/version.py".format(PACKAGE_NAME))

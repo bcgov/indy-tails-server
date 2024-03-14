@@ -1,5 +1,5 @@
 aiohttp==3.8.6
-base58
+base58~=2.1.1
 
 # temporary to fix transitive dependency issues
 multidict<5.0.0
