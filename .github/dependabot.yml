@@ -5,16 +5,31 @@ updates:
   # Maintain dependencies for GitHub Actions
   #  - Check for updates once a week
   #  - Group all updates into a single PR
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
     groups:
       all-actions:
         patterns: ["*"]
 
-  # Maintain pip dependencies
-  - package-ecosystem: pip
-    directory: /
+  # Maintain dependencies for Python Packages
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: daily
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+        
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Canada/Pacific"
