@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 # Note: libindy is a dependency for tests, and it's easiest to install on ubuntu images 
 # using debian from python base images doesn't allow following steps to work, so build from ubuntu:20
