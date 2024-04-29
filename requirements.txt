@@ -8,4 +8,4 @@ yarl==1.6.0
 # indy_vdr
 # Error loading library: indy_vdr specified version because it occurs when installing as pip3 install indy-vdr.
 
-indy_vdr==0.4.0.dev16
+indy_vdr==0.4.2
