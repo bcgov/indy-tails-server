@@ -5,4 +5,4 @@ aiofiles~=23.2.1
 python3_indy~=1.16.0.post286
 
 isort~=5.13.2
-black~=24.2.0
+black~=24.4.2
