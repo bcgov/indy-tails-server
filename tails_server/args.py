@@ -16,7 +16,7 @@ PARSER.add_argument(
 
 PARSER.add_argument(
     "--port",
-    type=str,
+    type=int,
     required=False,
     dest="port",
     metavar="<port>",
@@ -38,7 +38,7 @@ PARSER.add_argument(
     required=False,
     dest="log_level",
     metavar="<log_level>",
-    help="Specify your desired loging level.",
+    help="Specify your desired logging level.",
 )
 
 PARSER.add_argument(
