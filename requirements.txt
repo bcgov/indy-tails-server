@@ -1,4 +1,4 @@
-aiohttp==3.10.5
+aiohttp==3.10.8
 base58~=2.1.1
 
 # temporary to fix transitive dependency issues
