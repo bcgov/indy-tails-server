@@ -1,10 +1,11 @@
 FROM bcgovimages/von-image:next-1
 
-ADD requirements.txt .
-ADD requirements.dev.txt .
+ADD pyproject.toml .
+ADD README.md .
+ADD tails_server ./tails_server
 
 RUN pip3 install --upgrade pip
-RUN pip3 install --no-cache-dir -r requirements.txt -r requirements.dev.txt
+RUN pip3 install --no-cache-dir .[dev]
 
 ADD test ./
 

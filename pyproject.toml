@@ -1,0 +1,47 @@
+[project]
+name = "tails_server"
+version = "1.1.0"
+description = "Tails Server"
+authors = [ { name = "Government of British Columbia", email = "DItrust@gov.bc.ca" } ]
+license = { text = "Apache-2.0"}
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "aiohttp==3.8.5",
+    "base58>=2.1.1",
+    "yarl==1.6.0",
+    "indy_vdr==0.4.0.dev16"
+]
+
+[project.optional-dependencies]
+# pip install -e .[dev]
+dev = [
+  "rich",
+  "pynacl",
+  "aiofiles",
+
+  "python3_indy"
+]
+
+[project.urls]
+Homepage = "https://github.com/bcgov/indy-tails-server"
+
+[tool.pyright]
+pythonVersion = "3.7"
+
+[tool.setuptools]
+packages = ["tails_server"]
+include-package-data = true
+
+[project.scripts]
+tails-server = "tails_server.__init__:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
