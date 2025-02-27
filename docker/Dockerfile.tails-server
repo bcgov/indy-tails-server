@@ -1,12 +1,16 @@
-FROM python:3.9
+FROM python:3.12
 
+ADD pyproject.toml .
+
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade setuptools
 
 ADD tails_server ./tails_server
 ADD bin ./bin
 ADD README.md ./
 ADD pyproject.toml ./
 
-RUN pip3 install --no-cache-dir -e .
+RUN pip3 install --no-cache-dir .
 
 ENTRYPOINT ["/bin/bash", "-c", "tails-server \"$@\""]
 
