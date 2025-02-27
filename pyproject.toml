@@ -36,8 +36,11 @@ Homepage = "https://github.com/bcgov/indy-tails-server"
 pythonVersion = "3.7"
 
 [tool.setuptools]
-packages = ["tails_server"]
+packages = ["tails_server", "tails_server.config"]
 include-package-data = true
+
+[tool.setuptools.package-data]
+"tails_server.config" = ["default_logging_config.ini"]
 
 [project.scripts]
 tails-server = "tails_server.__init__:main"

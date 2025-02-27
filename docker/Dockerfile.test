@@ -22,7 +22,7 @@ RUN pip3 install --upgrade pip
 RUN python3.9 -m pip install --upgrade pip
 
 # Use Python 3.9's pip to install dependencies
-RUN python3.9 -m pip install install --no-cache-dir .[dev]
+RUN python3.9 -m pip install --no-cache-dir .[dev]
 
 ADD test ./
 
