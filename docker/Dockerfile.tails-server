@@ -1,4 +1,6 @@
-FROM python:3.12
+FROM python:3.10
+
+ADD pyproject.toml .
 
 
 RUN pip3 install --upgrade pip
