@@ -7,33 +7,42 @@ license = { text = "Apache-2.0"}
 readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.9",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.7"
+# TODO: Upgrade this to the latest version once we no longer rely on indySDK
+requires-python = ">=3.9"
 dependencies = [
-    "aiohttp==3.8.5",
-    "base58>=2.1.1",
-    "yarl==1.6.0",
-    "indy_vdr==0.4.0.dev16"
+  "aiohttp==3.10.5",
+  "base58~=2.1.1",
+  # temporary to fix transitive dependency issues
+  "multidict<5.0.0",
+  "yarl==1.11.1",
+
+  # indy_vdr
+  # Error loading library: indy_vdr specified version because it occurs when installing as pip3 install indy-vdr.
+  "indy_vdr==0.4.2"
 ]
 
 [project.optional-dependencies]
 # pip install -e .[dev]
 dev = [
-  "rich",
-  "pynacl",
-  "aiofiles",
+  "rich~=13.8.1",
+  "pynacl~=1.5.0",
+  "aiofiles~=23.2.1",
 
-  "python3_indy"
+  "python3_indy~=1.16.0.post286",
+
+  "isort~=5.13.2",
+  "black~=24.2.0"
 ]
 
 [project.urls]
 Homepage = "https://github.com/bcgov/indy-tails-server"
 
 [tool.pyright]
-pythonVersion = "3.7"
+pythonVersion = "3.9"
 
 [tool.setuptools]
 packages = ["tails_server", "tails_server.config"]
