@@ -234,9 +234,10 @@ async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing happy path...", panel=True)
     session = aiohttp.ClientSession()
 
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
-        genesis_path, "rb"
-    ) as genesis_file:
+    with (
+        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+        open(genesis_path, "rb") as genesis_file,
+    ):
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
             data={"genesis": genesis_file, "tails": tails_file},
@@ -258,9 +259,10 @@ async def test_bad_revoc_reg_id_404(genesis_path, tails_server_url, revo_reg_def
     log_event("Testing bad revocation registry id...", panel=True)
     session = aiohttp.ClientSession()
 
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
-        genesis_path, "rb"
-    ) as genesis_file:
+    with (
+        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+        open(genesis_path, "rb") as genesis_file,
+    ):
         async with session.put(
             f"{tails_server_url}/bad-id",
             data={"genesis": genesis_file, "tails": tails_file},
@@ -274,9 +276,10 @@ async def test_upload_already_exist(genesis_path, tails_server_url, revo_reg_def
     log_event("Testing upload already exists...", panel=True)
     session = aiohttp.ClientSession()
 
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
-        genesis_path, "rb"
-    ) as genesis_file:
+    with (
+        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+        open(genesis_path, "rb") as genesis_file,
+    ):
         # First upload
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
@@ -284,9 +287,10 @@ async def test_upload_already_exist(genesis_path, tails_server_url, revo_reg_def
         ) as resp:
             assert resp.status == 200
 
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
-        genesis_path, "rb"
-    ) as genesis_file:
+    with (
+        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+        open(genesis_path, "rb") as genesis_file,
+    ):
         # Second upload
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
@@ -315,9 +319,10 @@ async def test_bad_content_type(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad content type...", panel=True)
     session = aiohttp.ClientSession()
 
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
-        genesis_path, "rb"
-    ) as genesis_file:
+    with (
+        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+        open(genesis_path, "rb") as genesis_file,
+    ):
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
             data={"genesis": genesis_file, "tails": tails_file},
@@ -332,9 +337,10 @@ async def test_bad_field_order(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing happy path...", panel=True)
     session = aiohttp.ClientSession()
 
-    with open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file, open(
-        genesis_path, "rb"
-    ) as genesis_file:
+    with (
+        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+        open(genesis_path, "rb") as genesis_file,
+    ):
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
             data={"tails": tails_file, "genesis": genesis_file},

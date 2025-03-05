@@ -13,14 +13,16 @@ RUN apt-get update && apt-get install -y ca-certificates gnupg software-properti
 # Install Python 3.9 and python3-pip
 RUN apt-get install -y python3.9 python3.9-venv python3.9-dev python3-pip
 
-ADD requirements.txt .
-ADD requirements.dev.txt .
+ADD pyproject.toml .
+ADD README.md .
+ADD tails_server ./tails_server
 
+RUN pip3 install --upgrade pip
 # Upgrade pip using Python 3.9 to ensure compatibility
 RUN python3.9 -m pip install --upgrade pip
 
-# Use Python 3.9's pip to install dependencies from requirements files
-RUN python3.9 -m pip install --no-cache-dir -r requirements.txt -r requirements.dev.txt
+# Use Python 3.9's pip to install dependencies
+RUN python3.9 -m pip install --no-cache-dir .[dev]
 
 ADD test ./
 
