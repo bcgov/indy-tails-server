@@ -11,6 +11,8 @@ import aiofiles
 import aiohttp
 import base58
 import indy
+from aries_askar import Store
+from anoncreds import Schema, CredentialDefinition, RevocationRegistryDefinition
 import indy_vdr
 import nacl.signing
 from rich import print as rprint
@@ -27,17 +29,84 @@ SCHEMA = {
     "name": "DL",
     "version": f"{randrange(10000)}.{randrange(10000)}.{randrange(10000)}",
     "attributes": '["age", "sex", "height", "name"]',
+    "attributes_new": ["age", "sex", "height", "name"],
 }
 
 CRED_DEF = {
     "tag": "cred_def_tag",
     "type": "CL",
     "config": json.dumps({"support_revocation": True}),
+    "support_revocation": True,
 }
 
 REVOC_REG_DEF = {
-    "config": json.dumps({"max_cred_num": 5, "issuance_type": "ISSUANCE_ON_DEMAND"}),
+    "config": {"max_cred_num": 5, "issuance_type": "ISSUANCE_ON_DEMAND"},
+    "registry_type": "CL_ACCUM",
+    "max_cred_num": 10,
+    "tag": "rev_reg_tag"
 }
+
+
+async def create_and_open_wallet():
+    store: Store = await Store.provision(
+        "sqlite:///issuer_wallet.db",
+        "raw",
+        Store.generate_raw_key(),
+        recreate=True,  # Set to False in production to keep data
+    )
+    return store
+
+
+async def create_did(seed: str) -> tuple[str, str]:
+    "Askar does not store did's for us so we need to manage them ourselves."
+    # TODO: remove need for nacl and only use askar
+    # Generate an Ed25519 keypair using the same method as Indy SDK
+    signing_key = nacl.signing.SigningKey(seed.encode())
+    verify_key = signing_key.verify_key
+    # Extract the first 16 bytes of the public key
+    did_bytes = verify_key.encode()[:16]
+
+    # Convert to base58 to get the DID
+    did = base58.b58encode(did_bytes).decode()
+    verify_key = base58.b58encode(verify_key.encode()).decode()
+    return did, verify_key
+
+
+def create_schema(
+    issuer_did: str, name: str, version: str, attrs: list[str]
+) -> tuple[Schema, str]:
+    schema_id = f"{issuer_did}:2:{name}:{version}"
+    return (
+        Schema.create(
+            issuer_id=issuer_did, name=name, version=version, attr_names=attrs
+        ),
+        schema_id,
+    )
+
+
+async def create_credential_definition(schema: Schema):
+    """Create a credential definition"""
+    cred_def = CredentialDefinition.create(
+        schema_id=ISSUER["schema_id"],
+        schema=schema,
+        issuer_id=ISSUER["did"],
+        tag=CRED_DEF["tag"],
+        signature_type=CRED_DEF["type"],
+        support_revocation=CRED_DEF["support_revocation"],
+    )
+    return cred_def
+
+
+async def create_revocation_registry(cred_def: CredentialDefinition):
+    """Create a revocation registry definition"""
+    return RevocationRegistryDefinition.create(
+        cred_def_id=make_cred_def_id(),
+        cred_def=cred_def,
+        issuer_id=ISSUER["did"],
+        tag="rev_reg_tag",
+        registry_type=REVOC_REG_DEF["registry_type"],
+        max_cred_num=REVOC_REG_DEF["config"]["max_cred_num"],
+    )
 
 
 def log_event(msg, panel=False, error=False):
@@ -64,23 +133,22 @@ async def connect_to_ledger(genesis_txn_path):
 
 
 # Register Issuer DID as Endorser using Steward
-async def register_issuer_did(pool):
+async def register_issuer_did(pool: indy_vdr.Pool):
     issuer_wallet_handle = ISSUER["wallet"]
 
     log_event("Generating and storing Steward DID and verkey...")
     steward_seed = "000000000000000000000000Steward1"
     did_json = json.dumps({"seed": steward_seed})
-    steward_did, steward_verkey = await indy.did.create_and_store_my_did(
-        issuer_wallet_handle, did_json
-    )
 
-    log_event("Generating and storing Issuer DID and verkey...")
+    steward_did, steward_verkey = await create_did(steward_seed)
+
+    log_event(
+        f"Generating and storing Issuer DID and verkey {steward_did}:{steward_verkey}..."
+    )
     did_json = json.dumps({"seed": ISSUER["seed"]})
-    issuer_did, issuer_verkey = await indy.did.create_and_store_my_did(
-        issuer_wallet_handle, did_json
-    )
+    issuer_did, issuer_verkey = await create_did(ISSUER["seed"])
 
-    log_event("Registering issuer DID...")
+    log_event(f"Registering issuer DID {issuer_did}:{issuer_verkey}...")
     req = indy_vdr.ledger.build_nym_request(
         steward_did, issuer_did, verkey=issuer_verkey, role="ENDORSER"
     )
@@ -88,65 +156,96 @@ async def register_issuer_did(pool):
 
 
 async def create_issuer_wallet():
+    ISSUER["wallet_new"] = await create_and_open_wallet()
     await indy.wallet.create_wallet(
         ISSUER["wallet_config"], ISSUER["wallet_credentials"]
     )
     ISSUER["wallet"] = await indy.wallet.open_wallet(
         ISSUER["wallet_config"], ISSUER["wallet_credentials"]
     )
+    log_event(f"Opened wallet {ISSUER['wallet']}...")
 
 
-async def publish_schema(pool):
-    ISSUER["schema_id"], ISSUER["schema"] = await indy.anoncreds.issuer_create_schema(
-        ISSUER["did"], SCHEMA["name"], SCHEMA["version"], SCHEMA["attributes"]
+async def publish_schema(pool: indy_vdr.Pool):
+    schema, schema_id = create_schema(
+        ISSUER["did"], SCHEMA["name"], SCHEMA["version"], attrs=SCHEMA["attributes_new"]
     )
+
+    # Add missing fields
+    tmp = schema.to_json()
+    json1_data = json.loads(tmp)
+    json1_data["ver"] = "1.0"
+    json1_data["id"] = schema_id
+
+    ISSUER["schema_id"], ISSUER["schema"] = schema_id, json.dumps(json1_data)
+    log_event(f"Schema_id {ISSUER['schema_id']} schema {ISSUER['schema']}...")
+
     req = indy_vdr.ledger.build_schema_request(ISSUER["did"], ISSUER["schema"])
+    log_event(f"req {req} body {req.body} ...")
     resp = await pool.submit_request(sign_request(req, ISSUER["seed"]))
+    CRED_DEF["seqNo"] = resp["txnMetadata"]["seqNo"]
+    log_event(f"resp {resp}...")
     schema_dict = json.loads(ISSUER["schema"])
     schema_dict["seqNo"] = resp["txnMetadata"]["seqNo"]
     ISSUER["schema"] = json.dumps(schema_dict)
 
 
-async def publish_cred_def(pool):
-    (
-        ISSUER["cred_def_id"],
-        ISSUER["cred_def"],
-    ) = await indy.anoncreds.issuer_create_and_store_credential_def(
-        ISSUER["wallet"],
-        ISSUER["did"],
-        ISSUER["schema"],
-        CRED_DEF["tag"],
-        CRED_DEF["type"],
-        CRED_DEF["config"],
-    )
+def make_cred_def_id() -> str:
+    """Derive the ID for a credential definition."""
+    return f"{ISSUER['did']}:3:{CRED_DEF['type']}:{CRED_DEF['seqNo']}:{CRED_DEF['tag']}"
+
+async def publish_cred_def(pool: indy_vdr.Pool):
+    w: Store = ISSUER["wallet_new"]
+    (cred_def, _, _) = await create_credential_definition(ISSUER["schema"])
+    ISSUER["cred_def"] = cred_def.to_dict()
+
+    ISSUER["cred_def_id"] = make_cred_def_id()
+
+    # Add missing fields needed by indy_vdr
+    cd = ISSUER["cred_def"]
+    cd["ver"] = "1.0"
+    cd["id"] = ISSUER["cred_def_id"]
+    cd["schemaId"] = str(CRED_DEF["seqNo"])
+
+    log_event(f"id is {cd['id']}...")
+    ISSUER["cred_def"] = cd
+
+    log_event(f"cred_def {ISSUER['cred_def']}...")
     req = indy_vdr.ledger.build_cred_def_request(ISSUER["did"], ISSUER["cred_def"])
-    ISSUER["cred_def"] = json.dumps(
+    log_event(f"req is {req.body}...")
+    json.dumps(
         await pool.submit_request(sign_request(req, ISSUER["seed"]))
     )
 
 
-async def publish_revoc_reg(pool, tag):
+async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
     ISSUER["tails_writer_config"] = json.dumps({"base_dir": "tails", "uri_pattern": ""})
     ISSUER["tails_writer"] = await indy.blob_storage.open_writer(
         "default", ISSUER["tails_writer_config"]
     )
-    (
-        ISSUER["rev_reg_id"],
-        ISSUER["rev_reg_def"],
-        ISSUER["rev_reg_entry"],
-    ) = await indy.anoncreds.issuer_create_and_store_revoc_reg(
-        ISSUER["wallet"],
-        ISSUER["did"],
-        None,
-        tag,
-        ISSUER["cred_def_id"],
-        REVOC_REG_DEF["config"],
-        ISSUER["tails_writer"],
-    )
+
+    log_event(f"rev made with cred def which is {ISSUER['cred_def']} ")
+    rev_reg_def, rev_reg_def_private = await create_revocation_registry(ISSUER["cred_def"])
+
+    # add missing fields
+    json_data = rev_reg_def.to_dict()
+    json_data["id"] = f"{ISSUER['did']}:4:{make_cred_def_id()}:CL_ACCUM:{REVOC_REG_DEF['tag']}"
+    json_data["ver"] = "1.0"
+    json_data["schemaId"] = CRED_DEF["seqNo"]
+    json_data["value"]["issuanceType"] = REVOC_REG_DEF["config"]["issuance_type"]
+
+    rev_reg_def = json_data
+    ISSUER["rev_reg_def"] = rev_reg_def
+    log_event(f"rev_reg is {rev_reg_def}")
     req = indy_vdr.ledger.build_revoc_reg_def_request(
-        ISSUER["did"], ISSUER["rev_reg_def"]
+        ISSUER["did"], rev_reg_def
     )
-    return (await pool.submit_request(sign_request(req, ISSUER["seed"])))["txn"]["data"]
+
+    log_event(f"rev_reg is {ISSUER['rev_reg_def']} req is {req.body}")
+
+    s = sign_request(req, ISSUER["seed"])
+    log_event(f"signed_request {s}...")
+    return (await pool.submit_request(s))["txn"]["data"]
 
 
 async def run_tests(genesis_url, tails_server_url):
@@ -233,15 +332,17 @@ async def run_tests(genesis_url, tails_server_url):
 async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing happy path...", panel=True)
     session = aiohttp.ClientSession()
-
+    log_event(f"tails location {revo_reg_def['value']['tailsLocation']}")
     with (
         open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
         open(genesis_path, "rb") as genesis_file,
     ):
+        log_event(f"revo_reg_def['id'] {revo_reg_def['id']}")
         async with session.put(
             f"{tails_server_url}/{revo_reg_def['id']}",
             data={"genesis": genesis_file, "tails": tails_file},
         ) as resp:
+            log_event(f" resp is {resp} resp cont is {resp.content} resp status {resp.status}")
             assert resp.status == 200
     log_event("Passed")
 
