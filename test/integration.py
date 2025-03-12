@@ -9,9 +9,11 @@ from tempfile import NamedTemporaryFile
 
 import aiofiles
 import aiohttp
+from aiohttp.web_app import Any
 import base58
 from anoncreds import Schema, CredentialDefinition, RevocationRegistryDefinition
 import indy_vdr
+from indy_vdr.request import Request
 import nacl.signing
 from rich import print as rprint
 from rich.panel import Panel
@@ -67,32 +69,7 @@ def create_schema(
     )
 
 
-async def create_credential_definition(schema: Schema):
-    """Create a credential definition"""
-    cred_def = CredentialDefinition.create(
-        schema_id=ISSUER["schema_id"],
-        schema=schema,
-        issuer_id=ISSUER["did"],
-        tag=CRED_DEF["tag"],
-        signature_type=CRED_DEF["type"],
-        support_revocation=CRED_DEF["support_revocation"],
-    )
-    return cred_def
-
-
-async def create_revocation_registry(cred_def: CredentialDefinition, tag: str):
-    """Create a revocation registry definition"""
-    return RevocationRegistryDefinition.create(
-        cred_def_id=make_cred_def_id(),
-        cred_def=cred_def,
-        issuer_id=ISSUER["did"],
-        tag=tag,
-        registry_type=REVOC_REG_DEF["registry_type"],
-        max_cred_num=REVOC_REG_DEF["max_cred_num"],
-    )
-
-
-def log_event(msg, panel=False, error=False):
+def log_event(msg: str, panel: bool=False, error: bool=False):
     if not error:
         msg = f"[bright_green]{msg}"
     else:
@@ -104,14 +81,14 @@ def log_event(msg, panel=False, error=False):
     rprint(msg)
 
 
-def sign_request(req, seed):
+def sign_request(req: Request, seed: str):
     key = nacl.signing.SigningKey(seed.encode("ascii"))
     signed = key.sign(req.signature_input)
     req.set_signature(signed.signature)
     return req
 
 
-async def connect_to_ledger(genesis_txn_path):
+async def connect_to_ledger(genesis_txn_path: str):
     return await indy_vdr.open_pool(transactions_path=genesis_txn_path)
 
 
@@ -142,7 +119,7 @@ async def publish_schema(pool: indy_vdr.Pool):
 
     # Add missing fields
     tmp = schema.to_json()
-    json1_data = json.loads(tmp)
+    json1_data: dict[str, Any] = json.loads(tmp)
     json1_data["ver"] = "1.0"
     json1_data["id"] = schema_id
 
@@ -163,7 +140,14 @@ def make_cred_def_id() -> str:
 
 async def publish_cred_def(pool: indy_vdr.Pool):
 
-    (cred_def, _, _) = await create_credential_definition(ISSUER["schema"])
+    (cred_def, _, _) = CredentialDefinition.create(
+        schema_id=ISSUER["schema_id"],
+        schema=ISSUER["schema"],
+        issuer_id=ISSUER["did"],
+        tag=CRED_DEF["tag"],
+        signature_type=CRED_DEF["type"],
+        support_revocation=CRED_DEF["support_revocation"],
+    )
 
     # Add missing fields needed by indy_vdr
     cd = cred_def.to_dict()
@@ -180,7 +164,14 @@ async def publish_cred_def(pool: indy_vdr.Pool):
 
 
 async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
-    rev_reg_def, rev_reg_def_private = await create_revocation_registry(ISSUER["cred_def"], tag)
+    rev_reg_def, rev_reg_def_private = RevocationRegistryDefinition.create(
+        cred_def_id=make_cred_def_id(),
+        cred_def=ISSUER["cred_def"],
+        issuer_id=ISSUER["did"],
+        tag=tag,
+        registry_type=REVOC_REG_DEF["registry_type"],
+        max_cred_num=REVOC_REG_DEF["max_cred_num"],
+    )
 
     # add missing fields
     json_data = rev_reg_def.to_dict()
@@ -199,7 +190,6 @@ async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
 
 
 async def run_tests(genesis_url, tails_server_url):
-    # rich_traceback_install()
     session = aiohttp.ClientSession()
 
     log_event("Setting up indy environment...")
