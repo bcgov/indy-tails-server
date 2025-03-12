@@ -9,12 +9,12 @@ from tempfile import NamedTemporaryFile
 
 import aiofiles
 import aiohttp
-from aiohttp.web_app import Any
 import base58
-from anoncreds import Schema, CredentialDefinition, RevocationRegistryDefinition
 import indy_vdr
-from indy_vdr.request import Request
 import nacl.signing
+from aiohttp.web_app import Any
+from anoncreds import CredentialDefinition, RevocationRegistryDefinition, Schema
+from indy_vdr.request import Request
 from rich import print as rprint
 from rich.panel import Panel
 
@@ -23,7 +23,7 @@ ISSUER: dict[str, str] = {
     "did": "4QxzWk3ajdnEA37NdNU5Kt",
 }
 
-SCHEMA: dict[str, str| list[str]] = {
+SCHEMA: dict[str, str | list[str]] = {
     "name": "DL",
     "version": f"{randrange(10000)}.{randrange(10000)}.{randrange(10000)}",
     "attributes": ["age", "sex", "height", "name"],
@@ -39,7 +39,7 @@ REVOC_REG_DEF: dict[str, str | int] = {
     "registry_type": "CL_ACCUM",
     "max_cred_num": 5,
     "issuance_type": "ISSUANCE_ON_DEMAND",
-    "tag": "rev_reg_tag"
+    "tag": "rev_reg_tag",
 }
 
 
@@ -69,7 +69,7 @@ def create_schema(
     )
 
 
-def log_event(msg: str, panel: bool=False, error: bool=False):
+def log_event(msg: str, panel: bool = False, error: bool = False):
     if not error:
         msg = f"[bright_green]{msg}"
     else:
@@ -138,6 +138,7 @@ def make_cred_def_id() -> str:
     """Derive the ID for a credential definition."""
     return f"{ISSUER['did']}:3:{CRED_DEF['type']}:{CRED_DEF['seqNo']}:{CRED_DEF['tag']}"
 
+
 async def publish_cred_def(pool: indy_vdr.Pool):
 
     (cred_def, _, _) = CredentialDefinition.create(
@@ -158,9 +159,7 @@ async def publish_cred_def(pool: indy_vdr.Pool):
     ISSUER["cred_def"] = cd
 
     req = indy_vdr.ledger.build_cred_def_request(ISSUER["did"], ISSUER["cred_def"])
-    json.dumps(
-        await pool.submit_request(sign_request(req, ISSUER["seed"]))
-    )
+    json.dumps(await pool.submit_request(sign_request(req, ISSUER["seed"])))
 
 
 async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
@@ -182,9 +181,7 @@ async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
 
     rev_reg_def = json_data
 
-    req = indy_vdr.ledger.build_revoc_reg_def_request(
-        ISSUER["did"], rev_reg_def
-    )
+    req = indy_vdr.ledger.build_revoc_reg_def_request(ISSUER["did"], rev_reg_def)
 
     return (await pool.submit_request(sign_request(req, ISSUER["seed"])))["txn"]["data"]
 
