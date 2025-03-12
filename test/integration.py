@@ -10,54 +10,38 @@ from tempfile import NamedTemporaryFile
 import aiofiles
 import aiohttp
 import base58
-from aries_askar import Store
 from anoncreds import Schema, CredentialDefinition, RevocationRegistryDefinition
 import indy_vdr
 import nacl.signing
 from rich import print as rprint
 from rich.panel import Panel
 
-ISSUER = {
+ISSUER: dict[str, str] = {
     "seed": "00000000000000000000000000000000",
     "did": "4QxzWk3ajdnEA37NdNU5Kt",
-    "wallet_config": json.dumps({"id": "issuer_wallet"}),
-    "wallet_credentials": json.dumps({"key": "issuer_wallet_key"}),
 }
 
-SCHEMA = {
+SCHEMA: dict[str, str| list[str]] = {
     "name": "DL",
     "version": f"{randrange(10000)}.{randrange(10000)}.{randrange(10000)}",
-    "attributes": '["age", "sex", "height", "name"]',
-    "attributes_new": ["age", "sex", "height", "name"],
+    "attributes": ["age", "sex", "height", "name"],
 }
 
-CRED_DEF = {
+CRED_DEF: dict[str, str | bool] = {
     "tag": "cred_def_tag",
     "type": "CL",
-    "config": json.dumps({"support_revocation": True}),
     "support_revocation": True,
 }
 
-REVOC_REG_DEF = {
-    "config": {"max_cred_num": 5, "issuance_type": "ISSUANCE_ON_DEMAND"},
+REVOC_REG_DEF: dict[str, str | int] = {
     "registry_type": "CL_ACCUM",
-    "max_cred_num": 10,
+    "max_cred_num": 5,
+    "issuance_type": "ISSUANCE_ON_DEMAND",
     "tag": "rev_reg_tag"
 }
 
 
-async def create_and_open_wallet():
-    store: Store = await Store.provision(
-        "sqlite:///issuer_wallet.db",
-        "raw",
-        Store.generate_raw_key(),
-        recreate=True,  # Set to False in production to keep data
-    )
-    return store
-
-
 async def create_did(seed: str) -> tuple[str, str]:
-    "Askar does not store did's for us so we need to manage them ourselves."
     # TODO: remove need for nacl and only use askar
     # Generate an Ed25519 keypair using the same method as Indy SDK
     signing_key = nacl.signing.SigningKey(seed.encode())
@@ -104,7 +88,7 @@ async def create_revocation_registry(cred_def: CredentialDefinition, tag: str):
         issuer_id=ISSUER["did"],
         tag=tag,
         registry_type=REVOC_REG_DEF["registry_type"],
-        max_cred_num=REVOC_REG_DEF["config"]["max_cred_num"],
+        max_cred_num=REVOC_REG_DEF["max_cred_num"],
     )
 
 
@@ -151,12 +135,9 @@ async def register_issuer_did(pool: indy_vdr.Pool):
     await pool.submit_request(sign_request(req, steward_seed))
 
 
-async def create_issuer_wallet():
-    ISSUER["wallet_new"] = await create_and_open_wallet()
-
 async def publish_schema(pool: indy_vdr.Pool):
     schema, schema_id = create_schema(
-        ISSUER["did"], SCHEMA["name"], SCHEMA["version"], attrs=SCHEMA["attributes_new"]
+        ISSUER["did"], SCHEMA["name"], SCHEMA["version"], attrs=SCHEMA["attributes"]
     )
 
     # Add missing fields
@@ -183,14 +164,11 @@ def make_cred_def_id() -> str:
 async def publish_cred_def(pool: indy_vdr.Pool):
 
     (cred_def, _, _) = await create_credential_definition(ISSUER["schema"])
-    ISSUER["cred_def"] = cred_def.to_dict()
-
-    ISSUER["cred_def_id"] = make_cred_def_id()
 
     # Add missing fields needed by indy_vdr
-    cd = ISSUER["cred_def"]
+    cd = cred_def.to_dict()
     cd["ver"] = "1.0"
-    cd["id"] = ISSUER["cred_def_id"]
+    cd["id"] = make_cred_def_id()
     cd["schemaId"] = str(CRED_DEF["seqNo"])
 
     ISSUER["cred_def"] = cd
@@ -209,10 +187,9 @@ async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
     json_data["id"] = f"{ISSUER['did']}:4:{make_cred_def_id()}:CL_ACCUM:{tag}"
     json_data["ver"] = "1.0"
     json_data["schemaId"] = CRED_DEF["seqNo"]
-    json_data["value"]["issuanceType"] = REVOC_REG_DEF["config"]["issuance_type"]
+    json_data["value"]["issuanceType"] = REVOC_REG_DEF["issuance_type"]
 
     rev_reg_def = json_data
-    ISSUER["rev_reg_def"] = rev_reg_def
 
     req = indy_vdr.ledger.build_revoc_reg_def_request(
         ISSUER["did"], rev_reg_def
@@ -234,8 +211,6 @@ async def run_tests(genesis_url, tails_server_url):
 
     log_event("Connecting to ledger...")
     pool = await connect_to_ledger(genesis_file.name)
-    log_event("Creating wallet...")
-    await create_issuer_wallet()
     log_event("Registering DID to ledger...")
     await register_issuer_did(pool)
     log_event("Publishing schema to ledger...")
@@ -300,6 +275,7 @@ async def run_tests(genesis_url, tails_server_url):
     pool.close()
 
     await test_race_download(genesis_file.name, tails_server_url, revo_reg_def)
+    await session.close()
 
 
 async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):

@@ -1,29 +1,17 @@
-FROM ubuntu:20.04
+FROM python:3.12
 
-# Note: libindy is a dependency for tests, and it's easiest to install on ubuntu images 
-# using debian from python base images doesn't allow following steps to work, so build from ubuntu:20
-
-# Install ca-certificates and add the Sovrin repository key
-RUN apt-get update && apt-get install -y ca-certificates gnupg software-properties-common && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys CE7709D068DB5E88 && \
-    add-apt-repository "deb https://repo.sovrin.org/sdk/deb bionic stable" && \
-    apt-get update && \
-    apt-get install -y libindy
-
-# Install Python 3.9 and python3-pip
-RUN apt-get install -y python3.9 python3.9-venv python3.9-dev python3-pip
 
 ADD pyproject.toml .
 ADD README.md .
 ADD tails_server ./tails_server
 
 RUN pip3 install --upgrade pip
-# Upgrade pip using Python 3.9 to ensure compatibility
-RUN python3.9 -m pip install --upgrade pip
 
-# Use Python 3.9's pip to install dependencies
-RUN python3.9 -m pip install --no-cache-dir .[dev]
+RUN python3.12 -m pip install --upgrade pip
+
+# Use Python 3.12's pip to install dependencies
+RUN python3.12 -m pip install --no-cache-dir .[dev]
 
 ADD test ./
 
-ENTRYPOINT ["python3.9", "integration.py"]
+ENTRYPOINT ["python3.12", "integration.py"]
