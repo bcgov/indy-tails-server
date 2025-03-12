@@ -6,13 +6,13 @@ import json
 import os
 from random import randrange
 from tempfile import NamedTemporaryFile
+from typing import Any
 
 import aiofiles
 import aiohttp
 import base58
 import indy_vdr
 import nacl.signing
-from aiohttp.web_app import Any
 from anoncreds import CredentialDefinition, RevocationRegistryDefinition, Schema
 from indy_vdr.request import Request
 from rich import print as rprint
@@ -187,14 +187,13 @@ async def publish_revoc_reg(pool: indy_vdr.Pool, tag):
 
 
 async def run_tests(genesis_url, tails_server_url):
-    session = aiohttp.ClientSession()
-
-    log_event("Setting up indy environment...")
-    log_event("Downloading genesis transactions...")
-    async with session.get(genesis_url) as resp:
-        with NamedTemporaryFile("w+b", delete=False) as genesis_file:
-            genesis_file.write(await resp.read())
-            genesis_file.seek(0)
+    async with aiohttp.ClientSession() as session:
+        log_event("Setting up indy environment...")
+        log_event("Downloading genesis transactions...")
+        async with session.get(genesis_url) as resp:
+            with NamedTemporaryFile("w+b", delete=False) as genesis_file:
+                genesis_file.write(await resp.read())
+                genesis_file.seek(0)
 
     log_event("Connecting to ledger...")
     pool = await connect_to_ledger(genesis_file.name)
@@ -262,94 +261,84 @@ async def run_tests(genesis_url, tails_server_url):
     pool.close()
 
     await test_race_download(genesis_file.name, tails_server_url, revo_reg_def)
-    await session.close()
 
 
 async def test_happy_path(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing happy path...", panel=True)
-    session = aiohttp.ClientSession()
-    with (
-        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
-        open(genesis_path, "rb") as genesis_file,
-    ):
-        async with session.put(
-            f"{tails_server_url}/{revo_reg_def['id']}",
-            data={"genesis": genesis_file, "tails": tails_file},
-        ) as resp:
-            assert resp.status == 200
-    log_event("Passed")
+    async with aiohttp.ClientSession() as session:
+        with (
+            open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+            open(genesis_path, "rb") as genesis_file,
+        ):
+            async with session.put(
+                f"{tails_server_url}/{revo_reg_def['id']}",
+                data={"genesis": genesis_file, "tails": tails_file},
+            ) as resp:
+                assert resp.status == 200
+                log_event("Passed")
 
-    # Find matching tails file
-    async with session.get(
-        f"{tails_server_url}/match/{revo_reg_def['credDefId']}"
-    ) as resp:
-        # Upload is complete so this should succeed
-        assert resp.status == 200
-        matches = json.loads(await resp.read())
-        assert matches
-    await session.close()
+            # Find matching tails file
+            async with session.get(
+                f"{tails_server_url}/match/{revo_reg_def['credDefId']}"
+            ) as resp:
+                # Upload is complete so this should succeed
+                assert resp.status == 200
+                matches = json.loads(await resp.read())
+                assert matches
 
 
 async def test_bad_revoc_reg_id_404(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad revocation registry id...", panel=True)
-    session = aiohttp.ClientSession()
-
-    with (
-        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
-        open(genesis_path, "rb") as genesis_file,
-    ):
-        async with session.put(
-            f"{tails_server_url}/bad-id",
-            data={"genesis": genesis_file, "tails": tails_file},
-        ) as resp:
-            assert resp.status == 400
-
-    await session.close()
+    async with aiohttp.ClientSession() as session:
+        with (
+            open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+            open(genesis_path, "rb") as genesis_file,
+        ):
+            async with session.put(
+                f"{tails_server_url}/bad-id",
+                data={"genesis": genesis_file, "tails": tails_file},
+            ) as resp:
+                assert resp.status == 400
     log_event("Passed")
 
 
 async def test_upload_already_exist(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing upload already exists...", panel=True)
-    session = aiohttp.ClientSession()
+    async with aiohttp.ClientSession() as session:
+        with (
+            open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+            open(genesis_path, "rb") as genesis_file,
+        ):
+            # First upload
+            async with session.put(
+                f"{tails_server_url}/{revo_reg_def['id']}",
+                data={"genesis": genesis_file, "tails": tails_file},
+            ) as resp:
+                assert resp.status == 200
+        with (
+            open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
+            open(genesis_path, "rb") as genesis_file,
+        ):
+            # Second upload
+            async with session.put(
+                f"{tails_server_url}/{revo_reg_def['id']}",
+                data={"genesis": genesis_file, "tails": tails_file},
+            ) as resp:
+                assert resp.status == 409
 
-    with (
-        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
-        open(genesis_path, "rb") as genesis_file,
-    ):
-        # First upload
-        async with session.put(
-            f"{tails_server_url}/{revo_reg_def['id']}",
-            data={"genesis": genesis_file, "tails": tails_file},
-        ) as resp:
-            assert resp.status == 200
-
-    with (
-        open(revo_reg_def["value"]["tailsLocation"], "rb") as tails_file,
-        open(genesis_path, "rb") as genesis_file,
-    ):
-        # Second upload
-        async with session.put(
-            f"{tails_server_url}/{revo_reg_def['id']}",
-            data={"genesis": genesis_file, "tails": tails_file},
-        ) as resp:
-            assert resp.status == 409
-
-    await session.close()
     log_event("Passed")
 
 
 async def test_upload_bad_tails_file(genesis_path, tails_server_url, revo_reg_def):
     log_event("Testing bad tails file...", panel=True)
-    session = aiohttp.ClientSession()
+    async with aiohttp.ClientSession() as session:
+        with open(genesis_path, "rb") as genesis_file:
+            async with session.put(
+                f"{tails_server_url}/{revo_reg_def['id']}",
+                data={"genesis": genesis_file, "tails": b"bad bytes"},
+            ) as resp:
+                assert resp.status == 400
 
-    with open(genesis_path, "rb") as genesis_file:
-        async with session.put(
-            f"{tails_server_url}/{revo_reg_def['id']}",
-            data={"genesis": genesis_file, "tails": b"bad bytes"},
-        ) as resp:
-            assert resp.status == 400
-
-    await session.close()
     log_event("Passed")
 
 
@@ -486,12 +475,13 @@ async def test_put_file_by_hash(tails_server_url):
     with aiohttp.MultipartWriter("mixed") as mpwriter:
         file.seek(0)
         mpwriter.append(file.read())
-        session = aiohttp.ClientSession()
-        async with session.put(
-            f"{tails_server_url}/hash/{tails_hash}",
-            data=mpwriter,
-        ) as resp:
-            assert resp.status == 200
+        async with aiohttp.ClientSession() as session:
+            async with session.put(
+                f"{tails_server_url}/hash/{tails_hash}",
+                data=mpwriter,
+            ) as resp:
+                assert resp.status == 200
+            await session.close()
 
     file.close()
     os.remove("test_tails.bin")
@@ -509,13 +499,13 @@ async def test_put_file_by_hash_x_version_tag(tails_server_url):
     with aiohttp.MultipartWriter("mixed") as mpwriter:
         file.seek(0)
         mpwriter.append(file.read())
-        session = aiohttp.ClientSession()
-        async with session.put(
-            f"{tails_server_url}/hash/{tails_hash}",
-            data=mpwriter,
-        ) as resp:
-            assert resp.status == 400
-            assert await resp.text() == 'Tails file must start with "00 02".'
+        async with aiohttp.ClientSession() as session:
+            async with session.put(
+                f"{tails_server_url}/hash/{tails_hash}",
+                data=mpwriter,
+            ) as resp:
+                assert resp.status == 400
+                assert await resp.text() == 'Tails file must start with "00 02".'
 
     file.close()
     os.remove("test_tails_x_version_tag.bin")
@@ -533,13 +523,13 @@ async def test_put_file_by_hash_x_file_size(tails_server_url):
     with aiohttp.MultipartWriter("mixed") as mpwriter:
         file.seek(0)
         mpwriter.append(file.read())
-        session = aiohttp.ClientSession()
-        async with session.put(
-            f"{tails_server_url}/hash/{tails_hash}",
-            data=mpwriter,
-        ) as resp:
-            assert resp.status == 400
-            assert await resp.text() == "Tails file is not the correct size."
+        async with aiohttp.ClientSession() as session:
+            async with session.put(
+                f"{tails_server_url}/hash/{tails_hash}",
+                data=mpwriter,
+            ) as resp:
+                assert resp.status == 400
+                assert await resp.text() == "Tails file is not the correct size."
 
     file.close()
     os.remove("test_tails_x_file_size.bin")
