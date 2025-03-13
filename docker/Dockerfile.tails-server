@@ -1,6 +1,5 @@
 FROM python:3.12
 
-ADD pyproject.toml .
 
 
 RUN pip3 install --upgrade pip
