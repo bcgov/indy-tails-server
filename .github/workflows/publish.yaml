@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+env:
+  PLATFORMS: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
+
 # Ensure only the most recent workflow runs.
 concurrency:
   group: von-network
@@ -58,3 +61,4 @@ jobs:
           context: .
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: ${{ env.PLATFORMS }}
