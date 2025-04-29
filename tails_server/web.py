@@ -14,6 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 routes = web.RouteTableDef()
 
+from .health import Check, EnvDump
 
 @routes.get("/match/{substring}")
 async def match_files(request):
@@ -231,6 +232,8 @@ async def put_file_by_hash(request):
 
     return web.Response(text=tails_hash)
 
+def check_shallow():
+    return True
 
 def start(settings):
     app = web.Application()
@@ -238,6 +241,14 @@ def start(settings):
 
     # Add routes
     app.add_routes(routes)
+
+    # To avoid putting too much strain on backend services, health check results can be cached in process memory.
+    # By default, they are set to None, so we need to set them to a specific time intervals for the cache to function
+    check = Check(success_ttl=30, failed_ttl=10)
+    app.router.add_get("/health/check", check)
+
+    # To enable extensibility, we can use `add_check` to inject our own custom check method (example above)
+    check.add_check(check_shallow)
 
     web.run_app(
         app,
