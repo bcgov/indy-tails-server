@@ -21,7 +21,8 @@ dependencies = [
 
   # indy_vdr
   # Error loading library: indy_vdr specified version because it occurs when installing as pip3 install indy-vdr.
-  "indy_vdr==0.4.2"
+  "indy_vdr==0.4.2",
+  "pyyaml (>=6.0.2,<7.0.0)"
 ]
 
 [project.optional-dependencies]
