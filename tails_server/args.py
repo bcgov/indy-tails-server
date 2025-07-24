@@ -24,21 +24,28 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
-    "--log-config",
-    type=str,
-    required=False,
-    dest="log_config",
-    metavar="<log_config_path>",
-    help="Specify a path to a python logging config.",
+    "--log-level",
+    dest="log_level",    
+    default="INFO",
+    choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
 )
 
 PARSER.add_argument(
-    "--log-level",
-    type=str,
-    required=False,
-    dest="log_level",
-    metavar="<log_level>",
-    help="Specify your desired logging level.",
+    "--log-config",
+    dest="log_config",
+    default=None,
+    help="Specifies a custom logging configuration file",
+)
+
+PARSER.add_argument(
+    "--log-file",
+    dest="log_file",
+    default=None,
+    help=(
+        "--log-file enables writing of logs to file, if a value is "
+        "provided then it uses that as log file location, otherwise "
+        "the default location in log config file is used."
+    ),
 )
 
 PARSER.add_argument(
@@ -62,6 +69,7 @@ def get_settings():
 
     settings["log_config"] = args.log_config
     settings["log_level"] = args.log_level
+    settings["log_file"] = args.log_file
 
     settings["storage_path"] = args.storage_path
 

@@ -1,0 +1,18 @@
+version: 1
+formatters:
+  jsonFormatter:
+    (): jsonLog.JsonFormatter
+handlers:
+  stdout:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: jsonFormatter
+    stream: ext://sys.stdout
+loggers:
+  jsonLogger:
+    level: DEBUG
+    handlers: [stdout]
+    propagate: no
+root:
+  level: DEBUG
+  handlers: [stdout]
