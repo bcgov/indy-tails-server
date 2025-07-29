@@ -13,7 +13,7 @@ class JsonFormatter(logging.Formatter):
       # "time": datetime.fromtimestamp(record.created).isoformat(),   
       "level": record.levelname,
       "logId": str(uuid.uuid4()),
-      "service": "acapy",
+      "service": "tails",
       "hostname": hostname,
       "pid": record.process,
       "file": record.filename,
