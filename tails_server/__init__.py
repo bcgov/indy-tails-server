@@ -1,9 +1,10 @@
+import logging
 from pathlib import Path
 
 from .args import get_settings
-from .web import start
 from .loadlogger import LoggingConfigurator
-import logging
+from .web import start
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -14,10 +15,7 @@ def configure_logging(settings):
     log_level = settings["log_level"]
 
     try:
-        LoggingConfigurator.configure(
-            log_config_path=log_config,
-            log_level=log_level
-        )
+        LoggingConfigurator.configure(log_config_path=log_config, log_level=log_level)
 
     except Exception as e:
         raise Exception("Logger configuration failed")
