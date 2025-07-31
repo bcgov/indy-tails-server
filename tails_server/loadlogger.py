@@ -53,10 +53,7 @@ class LoggingConfigurator:
 
     @classmethod
     def configure(
-        cls,
-        log_config_path: Optional[str] = None,
-        log_level: Optional[str] = None,
-        log_file: Optional[str] = None,
+        cls, log_config_path: Optional[str] = None, log_level: Optional[str] = None
     ):
         """Configure logger.
 
@@ -64,43 +61,21 @@ class LoggingConfigurator:
             custom logging config
 
         :param log_level: str: (Default value = None)
-
-        :param log_file: str: (Default value = None) Optional file name to write logs to
         """
 
-        write_to_log_file = log_file is not None or log_file == ""
-
-        # This is a check that requires a log file path to be provided if
-        # --log-file is specified on startup and a config file is not.
-        if not log_config_path and write_to_log_file and not log_file:
-            raise ValueError(
-                "log_file (--log-file) must be provided."
-                "using the default config since a log file path is not set."
-            )
-
-        cls._configure_logging(
-            log_config_path=log_config_path,
-            log_level=log_level,
-            log_file=log_file,
-        )
+        cls._configure_logging(log_config_path=log_config_path, log_level=log_level)
 
     @classmethod
-    def _configure_logging(cls, log_config_path, log_level, log_file):
+    def _configure_logging(cls, log_config_path, log_level):
         # Setup log config and log file if provided
-        cls._setup_log_config_file(log_config_path, log_file)
-
-        # Set custom file handler
-        if log_file:
-            logging.root.handlers.append(
-                logging.FileHandler(log_file, encoding="utf-8")
-            )
+        cls._setup_log_config_file(log_config_path)
 
         # Set custom log level
         if log_level:
             logging.root.setLevel(log_level.upper())
 
     @classmethod
-    def _setup_log_config_file(cls, log_config_path, log_file):
+    def _setup_log_config_file(cls, log_config_path):
         log_config, is_dict_config = cls._load_log_config(log_config_path)
 
         # Setup config
@@ -108,7 +83,7 @@ class LoggingConfigurator:
             logging.basicConfig(level=logging.WARNING)
             logging.root.warning(f"Logging config file not found: {log_config_path}")
         elif is_dict_config:
-            dictConfig(log_config, new_file_path=log_file or None)
+            dictConfig(log_config)
 
     @classmethod
     def _load_log_config(cls, log_config_path):

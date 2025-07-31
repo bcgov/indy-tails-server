@@ -28,6 +28,7 @@ services:
         --port 6543
         --storage-path $STORAGE_PATH
         --log-level $LOG_LEVEL
+        --log-config $LOGGING_CONFIG
   tester:
     build:
       context: ..
@@ -35,5 +36,8 @@ services:
     environment:
       - GENESIS_URL=${GENESIS_URL}
       - TAILS_SERVER_URL=${TAILS_SERVER_URL}
+    depends_on:
+      tails-server:
+        condition: service_started
 networks:
   tails-server:

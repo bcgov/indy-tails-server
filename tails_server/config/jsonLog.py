@@ -21,7 +21,7 @@ class JsonFormatter(logging.Formatter):
             + "Z",  # Only 3 Milliseconds
             "level": record.levelname,
             "logId": str(uuid.uuid4()),
-            "service": "acapy",
+            "service": "tails",
             "hostname": hostname,
             "pid": record.process,
             "file": record.filename,

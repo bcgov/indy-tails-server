@@ -3,19 +3,24 @@ from pathlib import Path
 from .args import get_settings
 from .web import start
 from .loadlogger import LoggingConfigurator
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 def configure_logging(settings):
-    """Perform common app configuration."""
-    # Set up logging
+    """Perform logging configuration."""
     log_config = settings["log_config"]
     log_level = settings["log_level"]
-    log_file = settings["log_file"]
-    LoggingConfigurator.configure(
-        log_config_path=log_config,
-        log_level=log_level,
-        log_file=log_file,
-    )
+
+    try:
+        LoggingConfigurator.configure(
+            log_config_path=log_config,
+            log_level=log_level
+        )
+
+    except Exception as e:
+        raise Exception("Logger configuration failed")
 
 
 def main():

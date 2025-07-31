@@ -238,7 +238,6 @@ def start(settings):
 
     # Add routes
     app.add_routes(routes)
-
     web.run_app(
         app,
         host=settings.get("host") or DEFAULT_WEB_HOST,

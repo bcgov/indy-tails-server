@@ -26,7 +26,7 @@ PARSER.add_argument(
 PARSER.add_argument(
     "--log-level",
     dest="log_level",
-    default="INFO",
+    default="DEBUG",
     choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     help="Python3 logging library level",
 )
@@ -34,19 +34,8 @@ PARSER.add_argument(
 PARSER.add_argument(
     "--log-config",
     dest="log_config",
-    default="/usr/src/app/tails-server/logging/config.yml",
+    default="/logging/config.yml",
     help="Specifies a custom logging configuration file",
-)
-
-PARSER.add_argument(
-    "--log-file",
-    dest="log_file",
-    default=None,
-    help=(
-        "--log-file enables writing of logs to file, if a value is "
-        "provided then it uses that as log file location, otherwise "
-        "the default location in log config file is used."
-    ),
 )
 
 PARSER.add_argument(
@@ -70,7 +59,6 @@ def get_settings():
 
     settings["log_config"] = args.log_config
     settings["log_level"] = args.log_level
-    settings["log_file"] = args.log_file
 
     settings["storage_path"] = args.storage_path
 
