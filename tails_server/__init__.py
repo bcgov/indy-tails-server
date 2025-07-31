@@ -5,7 +5,6 @@ from .args import get_settings
 from .loadlogger import LoggingConfigurator
 from .web import start
 
-
 LOGGER = logging.getLogger(__name__)
 
 
