@@ -12,6 +12,7 @@ import yaml
 
 LOGGER = logging.getLogger(__name__)
 
+
 def load_resource(path: str, encoding: Optional[str] = None):
     """Open a resource file located in a python package or the local filesystem.
 
@@ -73,8 +74,7 @@ class LoggingConfigurator:
         # --log-file is specified on startup and a config file is not.
         if not log_config_path and write_to_log_file and not log_file:
             raise ValueError(
-                "log_file (--log-file) must be provided in single-tenant mode "
-                "using the default config since a log file path is not set."
+                "log_file (--log-file) must be provided."
             )
 
         cls._configure_logging(
@@ -90,7 +90,9 @@ class LoggingConfigurator:
 
         # Set custom file handler
         if log_file:
-            logging.root.handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+            logging.root.handlers.append(
+                logging.FileHandler(log_file, encoding="utf-8")
+            )
 
         # Set custom log level
         if log_level:

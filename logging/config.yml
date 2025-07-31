@@ -1,3 +1,5 @@
+# Python3 logging configuration. 
+# For more information, please visit: https://docs.python.org/3/library/logging.html
 version: 1
 formatters:
   jsonFormatter:

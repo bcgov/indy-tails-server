@@ -25,15 +25,16 @@ PARSER.add_argument(
 
 PARSER.add_argument(
     "--log-level",
-    dest="log_level",    
+    dest="log_level",
     default="INFO",
     choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+    help="Python3 logging library level",
 )
 
 PARSER.add_argument(
     "--log-config",
     dest="log_config",
-    default=None,
+    default="/usr/src/app/tails-server/logging/config.yml",
     help="Specifies a custom logging configuration file",
 )
 
