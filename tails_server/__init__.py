@@ -18,7 +18,7 @@ def configure_logging(settings):
         LoggingConfigurator.configure(log_config_path=log_config, log_level=log_level)
 
     except Exception as e:
-        raise Exception("Logger configuration failed")
+        raise Exception("Logger configuration failed: ", e)
 
 
 def main():

@@ -3,7 +3,7 @@
 import io
 import logging
 from importlib import resources
-from logging.config dictConfigClass
+from logging.config import dictConfigClass
 from typing import Optional
 
 import yaml
