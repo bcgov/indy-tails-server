@@ -19,6 +19,9 @@ services:
       - 6543:6543
     networks:
       - tails-server
+    environment:
+      - STORAGE_PATH=${STORAGE_PATH}
+      - LOG_LEVEL=${LOG_LEVEL}
     command: >
       tails-server
         --host 0.0.0.0
@@ -29,5 +32,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
+    environment:
+      - GENESIS_URL=${GENESIS_URL}
+      - TAILS_SERVER_URL=${TAILS_SERVER_URL}
 networks:
   tails-server:

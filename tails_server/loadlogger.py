@@ -75,6 +75,7 @@ class LoggingConfigurator:
         if not log_config_path and write_to_log_file and not log_file:
             raise ValueError(
                 "log_file (--log-file) must be provided."
+                "using the default config since a log file path is not set."
             )
 
         cls._configure_logging(

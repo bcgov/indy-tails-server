@@ -9,4 +9,4 @@ RUN python3.12 -m pip install --no-cache-dir .[dev]
 
 ADD test ./
 
-ENTRYPOINT ["python3.12", "integration.py"]
+ENTRYPOINT python3 integration.py --genesis-url $GENESIS_URL --tails-server-url $TAILS_SERVER_URL
