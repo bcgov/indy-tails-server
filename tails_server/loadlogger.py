@@ -1,4 +1,4 @@
-"""Logging Configurator for aca-py agent."""
+"""Logging Configurator for tails server."""
 
 import io
 import logging
