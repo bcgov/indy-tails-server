@@ -58,6 +58,7 @@ exportEnvironment() {
   export GENESIS_URL=${GENESIS_URL:-http://$DOCKERHOST:9000/genesis}
   export STORAGE_PATH=${STORAGE_PATH:-/tmp/tails-files}
   export LOG_LEVEL=${LOG_LEVEL:-INFO}
+  export LOGGING_CONFIG=${LOGGING_CONFIG:-/logging/config.yml}
   export TAILS_SERVER_URL=${TAILS_SERVER_URL:-http://$DOCKERHOST:6543}
 }
 
