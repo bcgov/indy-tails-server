@@ -17,10 +17,6 @@ loggers:
     level: DEBUG
     handlers: [stdout]
     propagate: no
-  aiohttp.access:
-    level: DEBUG
-    handlers: [stdout]
-    propagate: no
 
 root:
   level: DEBUG
