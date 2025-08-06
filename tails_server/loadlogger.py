@@ -4,9 +4,13 @@ import io
 import logging
 from importlib import resources
 from logging.config import dictConfigClass
+import os
+import sys
 from typing import Optional
 
 import yaml
+
+sys.path.insert(1, os.path.realpath(os.path.dirname(__file__)) + "/config")
 
 LOGGER = logging.getLogger(__name__)
 
