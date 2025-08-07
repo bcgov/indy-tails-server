@@ -1,12 +1,12 @@
-FROM python:3.12
+FROM python:3.13
 
 ADD pyproject.toml .
 ADD README.md .
 ADD tails_server ./tails_server
 
-# Use Python 3.12's pip to install dependencies
-RUN python3.12 -m pip install --no-cache-dir .[dev]
+# Use Python 3.13's pip to install dependencies
+RUN python3.13 -m pip install --no-cache-dir .[dev]
 
 ADD test ./
 
-ENTRYPOINT ["python3.12", "integration.py"]
+ENTRYPOINT ["python3.13", "integration.py"]
