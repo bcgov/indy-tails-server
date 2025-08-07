@@ -13,11 +13,11 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-  "aiohttp==3.10.5",
+  "aiohttp==3.12.15",
   "base58~=2.1.1",
   # temporary to fix transitive dependency issues
-  "multidict<5.0.0",
-  "yarl==1.11.1",
+  "multidict<6.0.0",
+  "yarl==1.20.1",
 
   # indy_vdr
   # Error loading library: indy_vdr specified version because it occurs when installing as pip3 install indy-vdr.
@@ -35,7 +35,7 @@ dev = [
   "anoncreds==0.2.0",
 
   "isort~=5.13.2",
-  "black~=24.2.0"
+  "black~=24.10.0"
 ]
 
 [project.urls]
