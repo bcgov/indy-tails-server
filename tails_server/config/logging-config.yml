@@ -1,0 +1,23 @@
+# Python3 logging configuration. 
+# For more information, please visit: https://docs.python.org/3/library/logging.html
+version: 1
+disable_existing_loggers: False
+
+formatters:
+  jsonFormatter:
+    (): jsonLog.JsonFormatter
+handlers:
+  stdout:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: jsonFormatter
+    stream: ext://sys.stdout
+loggers:
+  jsonLogger:
+    level: DEBUG
+    handlers: [stdout]
+    propagate: no
+
+root:
+  level: DEBUG
+  handlers: [stdout]

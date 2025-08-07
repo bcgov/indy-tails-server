@@ -24,21 +24,24 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
-    "--log-config",
-    type=str,
-    required=False,
-    dest="log_config",
-    metavar="<log_config_path>",
-    help="Specify a path to a python logging config.",
-)
-
-PARSER.add_argument(
     "--log-level",
     type=str,
     required=False,
     dest="log_level",
     metavar="<log_level>",
-    help="Specify your desired logging level.",
+    choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+    default="INFO",
+    help="Python3 logging library level",
+)
+
+PARSER.add_argument(
+    "--log-config",
+    type=str,
+    required=False,
+    dest="log_config",
+    metavar="<log_config>",
+    default="/tails_server/config/logging-config.yml",
+    help="Specifies a custom logging configuration file",
 )
 
 PARSER.add_argument(

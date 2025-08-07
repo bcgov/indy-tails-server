@@ -25,6 +25,7 @@ services:
         --port 6543
         --storage-path $STORAGE_PATH
         --log-level $LOG_LEVEL
+        --log-config $LOGGING_CONFIG
   tester:
     build:
       context: ..
