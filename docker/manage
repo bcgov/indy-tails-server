@@ -13,7 +13,7 @@ if [[ $(docker compose version 2> /dev/null) == 'Docker Compose'* ]]; then
 fi
 export MSYS_NO_PATHCONV=1
 # getDockerHost; for details refer to https://github.com/bcgov/DITP-DevOps/tree/main/code/snippets#getdockerhost
-. /dev/stdin <<<"$(cat <(curl -s --raw https://raw.githubusercontent.com/bcgov/DITP-DevOps/main/code/snippets/getDockerHost))" 
+. /dev/stdin <<<"$(cat <(curl -s --raw https://raw.githubusercontent.com/bcgov/DITP-DevOps/main/code/snippets/getDockerHost))"
 export DOCKERHOST=$(getDockerHost)
 set -e
 
@@ -57,7 +57,7 @@ exportEnvironment() {
 
   export GENESIS_URL=${GENESIS_URL:-http://$DOCKERHOST:9000/genesis}
   export STORAGE_PATH=${STORAGE_PATH:-/tmp/tails-files}
-  export LOG_LEVEL=${LOG_LEVEL:-INFO}
+  export LOG_LEVEL=${LOG_LEVEL:-info}
   export LOGGING_CONFIG=${LOGGING_CONFIG:-/tails_server/config/logging-config.yml}
   export TAILS_SERVER_URL=${TAILS_SERVER_URL:-http://$DOCKERHOST:6543}
 }
@@ -70,7 +70,7 @@ function logs() {
     while getopts ":f-:" FLAG; do
       case $FLAG in
         f ) local _force=1 ;;
-        - ) 
+        - )
             case ${OPTARG} in
                 "no-tail"*) no_tail=1
               ;;
@@ -102,7 +102,7 @@ start|up)
   exportEnvironment "$@"
   ${dockerCompose} up -d ngrok-tails-server tails-server
   logs
-  echo "Run './manage logs' for logs" 
+  echo "Run './manage logs' for logs"
   ;;
 test)
   exportEnvironment "$@"

@@ -29,8 +29,7 @@ PARSER.add_argument(
     required=False,
     dest="log_level",
     metavar="<log_level>",
-    choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-    default="INFO",
+    default="info",
     help="Python3 logging library level",
 )
 
