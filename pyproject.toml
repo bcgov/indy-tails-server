@@ -1,6 +1,6 @@
 [project]
 name = "tails_server"
-version = "1.2.0"
+version = "1.2.1"
 description = "Tails Server"
 authors = [ { name = "Government of British Columbia", email = "DItrust@gov.bc.ca" } ]
 license = { text = "Apache-2.0"}
