@@ -42,6 +42,14 @@ extraEnv: []
 extraEnvFrom: []
 
 # Persistence for tails storage
+# OpenShift RWX example
+# persistence:
+#   enabled: true
+#   size: 10Gi
+#   accessModes:
+#     - ReadWriteMany
+#   storageClass: netapp-file-standard
+#   mountPath: /data
 persistence:
   enabled: false
   # If set, use an existing PVC and ignore size/accessModes/storageClass
@@ -149,17 +157,10 @@ service:
   nodePort: null
   annotations: {}
 
-# OpenShift RWX example (commented)
-# persistence:
-#   enabled: true
-#   size: 10Gi
-#   accessModes:
-#     - ReadWriteMany
-#   storageClass: netapp-file-standard
-#   mountPath: /data
-
+# Network policy to allow external ingress; disabled by default
+# For more information checkout: https://kubernetes.io/docs/concepts/services-networking/network-policies/
 networkPolicy:
-  enabled: true
+  enabled: false
   # Optional label selectors to restrict allowed sources
   namespaceSelector: {}
   ## Example:
