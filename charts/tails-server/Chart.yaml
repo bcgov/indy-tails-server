@@ -1,0 +1,25 @@
+apiVersion: v2
+name: tails-server
+description: Indy Tails Server - receive, store and serve Hyperledger Indy tails files
+
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+version: 0.1.0
+
+# Application version the chart deploys.
+appVersion: "1.2.1"
+
+# Minimum Kubernetes version supported by this chart (HPA v2)
+kubeVersion: ">=1.23.0-0"
+
+keywords:
+  - indy
+  - anoncreds
+  - tails
+  - revocation
+home: https://github.com/bcgov/indy-tails-server
+sources:
+  - https://github.com/bcgov/indy-tails-server
