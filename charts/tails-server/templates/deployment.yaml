@@ -53,6 +53,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["tails-server"]
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
