@@ -51,7 +51,7 @@ extraEnvFrom: []
 #   storageClass: netapp-file-standard
 #   mountPath: /data
 persistence:
-  enabled: false
+  enabled: true
   # If set, use an existing PVC and ignore size/accessModes/storageClass
   existingClaim: ""
   size: 10Gi
