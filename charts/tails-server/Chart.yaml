@@ -15,6 +15,14 @@ appVersion: "1.2.1"
 # Minimum Kubernetes version supported by this chart (HPA v2)
 kubeVersion: ">=1.23.0-0"
 
+maintainers:
+  - email: emiliano.sune@quartech.com
+    name: esune
+    url: https://github.com/esune
+  - email: ivan.polchenko@quartech.com
+    name: i5okie
+    url: https://github.com/i5okie
+
 keywords:
   - indy
   - anoncreds
