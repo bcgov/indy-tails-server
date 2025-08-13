@@ -11,6 +11,8 @@ jobs:
   # This job checks the remote file is up to date with the local one on release
   validate-chart-index:
     name: Validate Chart Index
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     if: github.repository_owner == 'bcgov'
     steps:
@@ -28,6 +30,8 @@ jobs:
 
   chart-release:
     name: Create and Publish Chart Release
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     if: github.repository_owner == 'bcgov'
     needs: [ validate-chart-index ]
