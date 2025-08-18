@@ -13,7 +13,7 @@ jobs:
     name: Python linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
@@ -35,13 +35,13 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: "indy-tails-server" # Specify a path to clone the main repo into a specific directory
 
       # Clone von-network repository
       - name: Checkout von-network repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "bcgov/von-network"
           path: "von-network" # Clone into a separate directory
