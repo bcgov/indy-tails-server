@@ -45,7 +45,7 @@ extraEnvFrom: []
 # OpenShift RWX example
 # persistence:
 #   enabled: true
-#   size: 10Gi
+#   size: 5Gi
 #   accessModes:
 #     - ReadWriteMany
 #   storageClass: netapp-file-standard
@@ -54,7 +54,7 @@ persistence:
   enabled: true
   # If set, use an existing PVC and ignore size/accessModes/storageClass
   existingClaim: ""
-  size: 10Gi
+  size: 5Gi
   accessModes:
     - ReadWriteOnce
   storageClass: ""

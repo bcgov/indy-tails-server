@@ -38,7 +38,7 @@ Values below are the most commonly tuned. See `values.yaml` for the full list.
 | ingress.enabled | false | Create Ingress (OpenShift will auto‑create Route) |
 | persistence.enabled | false | Enable persistent storage for tails files |
 | persistence.existingClaim | "" | Use an existing PVC name |
-| persistence.size | 10Gi | PVC size when creating new |
+| persistence.size | 5Gi | PVC size when creating new |
 | persistence.accessModes | [ReadWriteOnce] | PVC access modes |
 | persistence.storageClass | "" | StorageClass name |
 | persistence.mountPath | /data | Container mount path for storage |
