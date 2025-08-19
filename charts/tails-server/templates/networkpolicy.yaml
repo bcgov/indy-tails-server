@@ -1,0 +1,37 @@
+{{- if .Values.networkPolicy.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tails-server.fullname" . }}-allow-ingress
+  labels:
+    {{- include "tails-server.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "tails-server.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  {{- $ns := .Values.networkPolicy.namespaceSelector | default dict }}
+  {{- $pod := .Values.networkPolicy.podSelector | default dict }}
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+      {{- if or (gt (len $ns) 0) (gt (len $pod) 0) }}
+      from:
+        {{- if gt (len $ns) 0 }}
+        - namespaceSelector:
+            matchLabels:
+              {{- range $k, $v := $ns }}
+              {{ $k }}: {{ $v | quote }}
+              {{- end }}
+        {{- end }}
+        {{- if gt (len $pod) 0 }}
+        - podSelector:
+            matchLabels:
+              {{- range $k, $v := $pod }}
+              {{ $k }}: {{ $v | quote }}
+              {{- end }}
+        {{- end }}
+      {{- end }}
+{{- end }}
