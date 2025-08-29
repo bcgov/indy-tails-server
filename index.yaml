@@ -1,3 +1,31 @@
 apiVersion: v1
-entries: {}
-generated: "2025-08-29T14:59:00-07:00"
+entries:
+  tails-server:
+  - apiVersion: v2
+    appVersion: 1.2.1
+    created: "2025-08-29T22:09:32.29562242Z"
+    description: Indy Tails Server - receive, store and serve Hyperledger Indy tails
+      files
+    digest: c35a56999f4c145d7ee432a8861f94b4d8025b4f1444d1e4abb5059c8542941e
+    home: https://github.com/bcgov/indy-tails-server
+    keywords:
+    - indy
+    - anoncreds
+    - tails
+    - revocation
+    kubeVersion: '>=1.23.0-0'
+    maintainers:
+    - email: emiliano.sune@quartech.com
+      name: esune
+      url: https://github.com/esune
+    - email: ivan.polchenko@quartech.com
+      name: i5okie
+      url: https://github.com/i5okie
+    name: tails-server
+    sources:
+    - https://github.com/bcgov/indy-tails-server
+    type: application
+    urls:
+    - https://github.com/bcgov/indy-tails-server/releases/download/tails-server-0.1.0/tails-server-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-08-29T22:09:32.295631918Z"
