@@ -8,9 +8,10 @@ A simple, production‑ready Helm chart to deploy the Indy Tails Server.
 ## TL;DR
 
 ```bash
-# From repo root
-helm upgrade --install tails-server charts/tails-server \
-  --namespace tails --create-namespace
+helm repo add tails-server https://bcgov.github.io/indy-tails-server
+helm repo update
+helm upgrade --install tails-server tails-server/tails-server \
+  --namespace tails-server --create-namespace
 ```
 
 ## Prerequisites
