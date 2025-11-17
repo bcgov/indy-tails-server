@@ -32,7 +32,7 @@ dev = [
   "pynacl~=1.6.0",
   "aiofiles~=23.2.1",
 
-  "anoncreds==0.2.0",
+  "anoncreds==0.2.3",
 
   "isort~=5.13.2",
   "black~=24.10.0"
