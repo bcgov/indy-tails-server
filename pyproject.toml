@@ -55,5 +55,5 @@ include-package-data = true
 tails-server = "tails_server.__init__:main"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
