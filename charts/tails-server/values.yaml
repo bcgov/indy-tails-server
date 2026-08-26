@@ -112,8 +112,6 @@ readinessProbe:
 startupProbe:
   tcpSocket:
     port: http
-  # Benefit: prevents restarts during cold-start or slow PVC attach; only after this succeeds do liveness checks apply
-  initialDelaySeconds: 0
   periodSeconds: 2
   timeoutSeconds: 1
   failureThreshold: 30
