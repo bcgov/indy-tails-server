@@ -16,6 +16,9 @@ jobs:
   publish_to_ghcr:
     name: Publish image to ghcr.io
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out
         uses: actions/checkout@v7
